@@ -1550,6 +1550,8 @@
     if (document.getElementById('page-analysis').classList.contains('active')) loadAnalysis();
   }, 120000);
 
+  loadHornKings();
+
   // 초기 서버 연결 확인
   fetch(`${API}/api/stats/summary`)
     .then(() => setGlobalStatus('live', '연결됨'))
