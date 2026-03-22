@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
-const Database = require('better-sqlite3');
+const { Pool } = require('pg');
 
 const app = express();
 app.use(cors());
@@ -15,40 +15,89 @@ const SERVERS = ['류트', '만돌린', '하프', '울프'];
 console.log(`[디버그] API_KEY 앞 10자: ${API_KEY ? API_KEY.slice(0, 10) : '없음 (!!)'}`);
 console.log(`[디버그] 수집 서버: ${SERVERS.join(', ')}`);
 
-// DB 초기화 — server_name 컬럼 추가
-const db = new Database('erin.db');
-db.exec(`
-  CREATE TABLE IF NOT EXISTS horn (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    server_name TEXT,
-    character_name TEXT,
-    message TEXT,
-    date_send TEXT,
-    category TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-  CREATE INDEX IF NOT EXISTS idx_date_send ON horn(date_send);
-  CREATE INDEX IF NOT EXISTS idx_category ON horn(category);
-  CREATE INDEX IF NOT EXISTS idx_server ON horn(server_name);
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_unique ON horn(server_name, character_name, message, date_send);
-`);
+// PostgreSQL 연결
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+});
+
+// DB 초기화
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS horn (
+      id SERIAL PRIMARY KEY,
+      server_name TEXT,
+      character_name TEXT,
+      message TEXT,
+      date_send TEXT,
+      category TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(server_name, character_name, message, date_send)
+    );
+    CREATE INDEX IF NOT EXISTS idx_date_send ON horn(date_send);
+    CREATE INDEX IF NOT EXISTS idx_category ON horn(category);
+    CREATE INDEX IF NOT EXISTS idx_server ON horn(server_name);
+  `);
+  console.log('[DB] 테이블 초기화 완료');
+}
 
 // 카테고리 분류
 function classify(msg) {
-  // 길드 모집은 파티 모집보다 먼저 체크
   if (/길드원|길원/.test(msg)) return 'guild';
   if (/파티|구함|모집|인원|\/\d|[0-9]\/[0-9]/.test(msg)) return 'party';
   if (/팝니다|팝|판매|삽니다|구매|구입|얼마|골드|가격/.test(msg)) return 'trade';
   return 'etc';
 }
 
+// ── 마비노기 약어 정규화 테이블
+const NORMALIZE_MAP = {
+  '1채': '채널1', '2채': '채널2', '3채': '채널3', '4채': '채널4',
+  '5채': '채널5', '6채': '채널6', '7채': '채널7', '8채': '채널8',
+  '9채': '채널9', '10채': '채널10',
+  '브리': '브리레흐', '브레': '브리레흐',
+  '1관': '브리1-3관', '2관': '브리1-3관', '3관': '브리1-3관',
+  '1-3관': '브리1-3관', '4관': '브리4관',
+  '브트팟': '브리트라이팟', '브리트팟': '브리트라이팟',
+  '구구': '구슬구매', '정코억분': '정코억분배', '정코분배': '정코억분배',
+  '크롬': '크롬일반', '크일': '크롬일반', '크롬일': '크롬일반',
+  '크쉬': '크롬쉬움', '크롬쉬': '크롬쉬움',
+  '상독화분': '상독화분배',
+  '글렌': '글렌일반', '글매': '글렌일반', '글렴': '글렌일반',
+  '매어': '글렌일반', '글쉬': '글렌쉬움', '글렌매': '글렌일반',
+  '독식': '독식분배', '올독식': '올독식분배', '헤분': '헤일로분배',
+  '엘나': '엘레멘탈나이트', '세바': '세인트바드', '닼메': '다크메이지',
+  '알스': '알케믹스팅어', '세가': '세이크리드가드', '거너': '배리어블거너',
+  '포알': '포비든알케미스트', '멜퍼': '펠로딕퍼피티어',
+  '퓨파': '퓨리파이터', '뜌따': '퓨리파이터',
+  '풀팟': '풀파티', '풀파': '풀파티',
+  '중탈': '중도탈주가능',
+};
+
+// 불용어
+const STOP_WORDS = new Set([
+  '이', '가', '은', '는', '을', '를', '에', '의', '와', '과', '도', '로', '으로',
+  '에서', '하고', '이고', '그', '저', '것', '수', '있', '없',
+  '합니다', '합니다.', '해요', '해요.', '임', '임.', '입니다', '입니다.',
+  '모집합니다', '모집해요', '모집중', '모집', '구합니다', '구해요', '구인',
+  '있습니다', '없습니다', '됩니다', '드립니다', '드려요',
+  '가능', '가능합니다', '가능해요', '불가', '환영', '환영합니다',
+  '부탁', '부탁드립니다', '부탁해요', '감사합니다', '감사',
+  '참여', '참여해요', '출발', '출발합니다',
+  '합시다', '하실', '하세요', '해주세요',
+  '같이', '같이요', '같이해요', '같이하실분',
+  '하실분', '분들', '분이요', '분만',
+  '지금', '바로', '현재', '오늘', '오후', '오전', '저녁',
+]);
+
+function normalizeWord(w) {
+  return NORMALIZE_MAP[w] || w;
+}
+
 // 단일 서버 수집
 async function fetchServer(serverName) {
   try {
     const url = `https://open.api.nexon.com/mabinogi/v1/horn-bugle-world/history?server_name=${encodeURIComponent(serverName)}`;
-    const res = await fetch(url, {
-      headers: { 'x-nxopen-api-key': API_KEY }
-    });
+    const res = await fetch(url, { headers: { 'x-nxopen-api-key': API_KEY } });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -58,35 +107,24 @@ async function fetchServer(serverName) {
 
     const data = await res.json();
     const items = data.horn_bugle_world_history || [];
+    let newCount = 0;
 
-    const insert = db.prepare(`
-      INSERT OR IGNORE INTO horn (server_name, character_name, message, date_send, category)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-
-    const insertMany = db.transaction((rows) => {
-      let count = 0;
-      for (const item of rows) {
-        try {
-          const info = insert.run(
-            serverName,
-            item.character_name,
-            item.message,
-            item.date_send,
-            classify(item.message)
-          );
-          if (info.changes > 0) count++;
-        } catch (e) {
-          // 중복 무시
-        }
+    for (const item of items) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO horn (server_name, character_name, message, date_send, category)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (server_name, character_name, message, date_send) DO NOTHING`,
+          [serverName, item.character_name, item.message, item.date_send, classify(item.message)]
+        );
+        if (result.rowCount > 0) newCount++;
+      } catch (e) {
+        // 중복 무시
       }
-      return count;
-    });
+    }
 
-    const newCount = insertMany(items);
     console.log(`[${serverName}] ${items.length}건 조회, ${newCount}건 신규 저장`);
     return newCount;
-
   } catch (e) {
     console.error(`[${serverName}] 오류:`, e.message);
     return 0;
@@ -97,10 +135,9 @@ async function fetchServer(serverName) {
 async function fetchAll() {
   const now = new Date().toLocaleTimeString('ko-KR');
   console.log(`\n[${now}] 전 서버 수집 시작...`);
-  // 순차 호출 (API 부하 방지)
   for (const server of SERVERS) {
     await fetchServer(server);
-    await new Promise(r => setTimeout(r, 500)); // 0.5초 간격
+    await new Promise(r => setTimeout(r, 500));
   }
   console.log(`[${now}] 전 서버 수집 완료\n`);
 }
@@ -108,175 +145,107 @@ async function fetchAll() {
 // ─── API 엔드포인트 ───────────────────────────────
 
 // 최근 메시지 피드
-app.get('/api/feed', (req, res) => {
+app.get('/api/feed', async (req, res) => {
   const limit = parseInt(req.query.limit) || 100;
   const category = req.query.category;
   const keyword = req.query.keyword;
-  const server = req.query.server; // 'all' 또는 특정 서버명
+  const server = req.query.server;
 
   let query = 'SELECT * FROM horn';
   const params = [];
   const conditions = [];
 
   if (server && server !== 'all') {
-    conditions.push('server_name = ?');
     params.push(server);
+    conditions.push(`server_name = $${params.length}`);
   }
-
   if (category && category !== 'all') {
-    conditions.push('category = ?');
     params.push(category);
+    conditions.push(`category = $${params.length}`);
   }
-
   if (keyword) {
-    conditions.push('(message LIKE ? OR character_name LIKE ?)');
-    params.push(`%${keyword}%`, `%${keyword}%`);
+    params.push(`%${keyword}%`);
+    conditions.push(`(message ILIKE $${params.length} OR character_name ILIKE $${params.length})`);
   }
 
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
-
-  query += ' ORDER BY date_send DESC LIMIT ?';
+  if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
   params.push(limit);
+  query += ` ORDER BY date_send DESC LIMIT $${params.length}`;
 
-  const rows = db.prepare(query).all(...params);
-  res.json({ items: rows, count: rows.length });
+  const result = await pool.query(query, params);
+  res.json({ items: result.rows, count: result.rows.length });
 });
 
 // 시간대별 활동량
-app.get('/api/stats/hourly', (req, res) => {
+app.get('/api/stats/hourly', async (req, res) => {
   const days = parseInt(req.query.days) || 1;
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
   let query = `
-    SELECT 
-      CAST((CAST(strftime('%H', date_send) AS INTEGER) + 9) % 24 AS INTEGER) as hour,
+    SELECT
+      MOD(CAST(EXTRACT(HOUR FROM CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') AS INTEGER), 24) as hour,
       COUNT(*) as count
     FROM horn
-    WHERE date_send >= ?
+    WHERE date_send >= $1
   `;
   const params = [since];
 
   if (server && server !== 'all') {
-    query += ' AND server_name = ?';
     params.push(server);
+    query += ` AND server_name = $${params.length}`;
   }
 
   query += ' GROUP BY hour ORDER BY hour';
 
-  const rows = db.prepare(query).all(...params);
+  const result = await pool.query(query, params);
   const hourly = new Array(24).fill(0);
-  rows.forEach(r => { hourly[r.hour] = r.count; });
+  result.rows.forEach(r => { hourly[parseInt(r.hour)] = parseInt(r.count); });
 
   res.json({ hourly, since, days, server: server || 'all' });
 });
 
 // 카테고리 분포
-app.get('/api/stats/category', (req, res) => {
+app.get('/api/stats/category', async (req, res) => {
   const days = parseInt(req.query.days) || 1;
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = `SELECT category, COUNT(*) as count FROM horn WHERE date_send >= ?`;
+  let query = `SELECT category, COUNT(*) as count FROM horn WHERE date_send >= $1`;
   const params = [since];
 
   if (server && server !== 'all') {
-    query += ' AND server_name = ?';
     params.push(server);
+    query += ` AND server_name = $${params.length}`;
   }
 
   query += ' GROUP BY category';
+  const result = await pool.query(query, params);
+  const out = { party: 0, trade: 0, guild: 0, etc: 0 };
+  result.rows.forEach(r => { out[r.category] = parseInt(r.count); });
 
-  const rows = db.prepare(query).all(...params);
-  const result = { party: 0, trade: 0, etc: 0 };
-  rows.forEach(r => { result[r.category] = r.count; });
-
-  res.json(result);
+  res.json(out);
 });
 
-// ── 마비노기 약어 정규화 테이블
-const NORMALIZE_MAP = {
-  // 채널
-  '1채': '채널1', '2채': '채널2', '3채': '채널3', '4채': '채널4',
-  '5채': '채널5', '6채': '채널6', '7채': '채널7', '8채': '채널8',
-  '9채': '채널9', '10채': '채널10',
-  // 브리 레흐
-  '브레': '브리레흐', '브트팟': '브리트라이', '브리트팟': '브리트라이',
-  '구구': '구슬구매', '정코억분': '정코억분배', '정코분배': '정코억분배',
-  // 크롬바스
-  '크일': '크롬일반', '크쉬': '크롬쉬움',
-  '크롬일': '크롬일반', '크롬쉬': '크롬쉬움',
-  '상독화분': '상자독식화살분배',
-  // 글렌베르나
-  '글렌': '글렌베르나', '글매': '글렌일반', '글쉬': '글렌쉬움',
-  '글렴': '글렌일반', '매어': '매우어려움',
-  '헤분': '헤일로분배', '독식': '독식', '올독식': '올독식',
-  // 파티 용어
-  '풀팟': '풀파티', '풀파': '풀파티',
-  '중탈': '중도탈주가능',
-  // 아르카나
-  '엘나': '엘레멘탈나이트', '세바': '세인트바드', '닼메': '다크메이지',
-  '알스': '알케믹스팅어', '세가': '세이크리드가드', '거너': '배리어블거너',
-  '포알': '포비든알케미스트', '멜퍼': '펠로딕퍼피티어',
-  '퓨파': '퓨리파이터', '뜌따': '퓨리파이터',
-};
-
-// ── 불용어 목록 (확장)
-const STOP_WORDS = new Set([
-  // 조사/어미
-  '이', '가', '은', '는', '을', '를', '에', '의', '와', '과', '도', '로', '으로',
-  '에서', '하고', '이고', '그', '저', '것', '수', '있', '없',
-  // 서술어
-  '합니다', '합니다.', '해요', '해요.', '임', '임.', '입니다', '입니다.',
-  '모집합니다', '모집해요', '모집중', '모집', '구합니다', '구해요', '구인',
-  '있습니다', '없습니다', '됩니다', '합니다', '드립니다', '드려요',
-  '가능', '가능합니다', '가능해요', '불가', '환영', '환영합니다',
-  '부탁', '부탁드립니다', '부탁해요', '감사합니다', '감사',
-  '참여', '참여해요', '참여합니다', '출발', '출발합니다',
-  '합시다', '하실', '하시는', '하세요', '해주세요',
-  // 숫자/기호만
-  '00', '11', '22', '33',
-  // 기타 노이즈
-  '같이', '같이요', '같이해요', '같이하실', '같이하실분',
-  '하실분', '하실분들', '분들', '분이요', '분만',
-  '지금', '바로', '현재', '오늘', '오후', '오전', '저녁',
-]);
-
-// 닉네임 패턴 감지 (영문+숫자 혼합, 특수문자 포함 등)
-function looksLikeNickname(word, allMessages) {
-  // 메시지 발신자 닉네임 목록과 대조
-  return false; // DB에서 character_name으로 필터링하므로 여기선 패스
-}
-
-function normalizeWord(w) {
-  return NORMALIZE_MAP[w] || w;
-}
-
 // 키워드 트렌드
-app.get('/api/stats/keywords', (req, res) => {
+app.get('/api/stats/keywords', async (req, res) => {
   const days = parseInt(req.query.days) || 1;
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = `SELECT character_name, message FROM horn WHERE date_send >= ?`;
+  let query = `SELECT character_name, message FROM horn WHERE date_send >= $1`;
   const params = [since];
 
   if (server && server !== 'all') {
-    query += ' AND server_name = ?';
     params.push(server);
+    query += ` AND server_name = $${params.length}`;
   }
 
-  const rows = db.prepare(query).all(...params);
-
-  // 발신자 닉네임 집합 (키워드에서 제외)
-  const nicknames = new Set(rows.map(r => r.character_name));
-
+  const result = await pool.query(query, params);
+  const nicknames = new Set(result.rows.map(r => r.character_name));
   const freq = {};
 
-  rows.forEach(({ message }) => {
-    // 채널 표기 정규화 (숫자+채 패턴)
+  result.rows.forEach(({ message }) => {
     const normalized = message
       .replace(/(\d{1,2})(채널|채)/g, '채널$1')
       .replace(/채널(\d{1,2})/g, '채널$1');
@@ -288,12 +257,10 @@ app.get('/api/stats/keywords', (req, res) => {
 
     words.forEach(raw => {
       const w = normalizeWord(raw);
-      // 불용어, 닉네임, 숫자만인 것 제외
-      if (STOP_WORDS.has(w)) return;
-      if (STOP_WORDS.has(raw)) return;
+      if (STOP_WORDS.has(w) || STOP_WORDS.has(raw)) return;
       if (nicknames.has(w) || nicknames.has(raw)) return;
       if (/^[0-9]+$/.test(w)) return;
-      if (/^[a-zA-Z]{1,2}$/.test(w)) return; // 짧은 영문 제외
+      if (/^[a-zA-Z]{1,2}$/.test(w)) return;
       freq[w] = (freq[w] || 0) + 1;
     });
   });
@@ -307,37 +274,33 @@ app.get('/api/stats/keywords', (req, res) => {
 });
 
 // 파티 모집 현황
-app.get('/api/stats/party', (req, res) => {
+app.get('/api/stats/party', async (req, res) => {
   const days = parseInt(req.query.days) || 1;
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND date_send >= ?`;
+  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND date_send >= $1`;
   const params = [since];
 
   if (server && server !== 'all') {
-    query += ' AND server_name = ?';
     params.push(server);
+    query += ` AND server_name = $${params.length}`;
   }
 
-  const rows = db.prepare(query).all(...params);
+  const result = await pool.query(query, params);
+  const rows = result.rows.filter(r => !/길드원|길원/.test(r.message));
 
-  // 던전별 분류 (순서 중요 — 위에서부터 매칭)
   const dungeons = {
-    '브리레흐 4관':   { keywords: ['4관'], count: 0, recent: [] },
-    '브리레흐 1-3관': { keywords: ['1-3관', '1관', '2관', '3관', '브리트팟', '브트팟', '정코억분', '정코분배', '구구', '구슬구매', '브리레흐', '브레', '브리'], count: 0, recent: [] },
-    '크롬바스 일반':  { keywords: ['크일', '크롬일반', '크롬일', '크롬'], count: 0, recent: [] },
-    '크롬바스 쉬움':  { keywords: ['크쉬', '크롬쉬움', '크롬쉬'], count: 0, recent: [] },
-    '글렌베르나 일반':{ keywords: ['글매', '글렌일반', '헤분', '헤일로분배', '독식', '올독식', '글렴', '매어', '글렌매우어려움'], count: 0, recent: [] },
-    '글렌베르나 쉬움':{ keywords: ['글쉬', '글렌쉬움'], count: 0, recent: [] },
+    '브리레흐 (1-3관)': { keywords: ['브리레흐', '브리', '브레', '1관', '2관', '3관', '1-3관', '브트팟', '브리트팟', '정코억분', '정코분배', '구구', '구슬구매'], count: 0, recent: [] },
+    '브리레흐 (4관)': { keywords: ['4관'], count: 0, recent: [] },
+    '크롬바스 일반': { keywords: ['크롬일반', '크일', '크롬일', '크롬', '상독화분', '100버', '90버'], count: 0, recent: [] },
+    '크롬바스 쉬움': { keywords: ['크쉬', '크롬쉬', '크롬쉬움'], count: 0, recent: [] },
+    '글렌베르나 일반': { keywords: ['글매', '글렴', '글렌일반', '글렌', '글렌베르나', '헤분', '독식', '올독식', '매어'], count: 0, recent: [] },
+    '글렌베르나 쉬움': { keywords: ['글쉬', '글렌쉬움'], count: 0, recent: [] },
     '기타': { keywords: [], count: 0, recent: [] },
   };
 
-  // 길드 모집 메시지 앱 레벨에서 제외
-  const filteredRows = rows.filter(r => !/길드원|길원/.test(r.message));
-
-  filteredRows.forEach(({ message, date_send }) => {
-    // 메시지 정규화 적용
+  rows.forEach(({ message, date_send }) => {
     let normalizedMsg = message;
     for (const [abbr, full] of Object.entries(NORMALIZE_MAP)) {
       normalizedMsg = normalizedMsg.replace(new RegExp(abbr, 'g'), full);
@@ -359,9 +322,8 @@ app.get('/api/stats/party', (req, res) => {
     }
   });
 
-  // 인원 패턴 분석
   const memberPatterns = { '1인': 0, '2인': 0, '3인': 0, '4인': 0, '5인': 0, '6인': 0, '7인': 0, '풀파티': 0 };
-  filteredRows.forEach(({ message }) => {
+  rows.forEach(({ message }) => {
     if (/풀팟|풀파/.test(message)) { memberPatterns['풀파티']++; return; }
     const m = message.match(/([1-8])\s*\/\s*[1-8]/) || message.match(/([1-8])인/);
     if (m) {
@@ -370,63 +332,50 @@ app.get('/api/stats/party', (req, res) => {
     }
   });
 
-  const colorMap = {
-    '브리레흐 4관': 'blue', '브리레흐 1-3관': 'blue',
-    '크롬바스 일반': 'red', '크롬바스 쉬움': 'red',
-    '글렌베르나 일반': 'teal', '글렌베르나 쉬움': 'teal', '글렌베르나 매어': 'purple',
-    '기타': 'etc',
-  };
+  const dungeonList = Object.entries(dungeons)
+    .map(([name, info]) => ({ name, count: info.count, recent: info.recent }))
+    .sort((a, b) => b.count - a.count);
 
-  const dungeonList = Object.entries(dungeons).map(([name, info]) => ({
-    name,
-    count: info.count,
-    recent: info.recent,
-    color: colorMap[name] || 'etc',
-  })).sort((a, b) => b.count - a.count);
-
-  res.json({
-    total: rows.length,
-    dungeons: dungeonList,
-    memberPatterns,
-  });
+  res.json({ total: rows.length, dungeons: dungeonList, memberPatterns });
 });
 
 // 전체 통계 요약
-app.get('/api/stats/summary', (req, res) => {
-  const total = db.prepare('SELECT COUNT(*) as count FROM horn').get();
-  const today = db.prepare(`SELECT COUNT(*) as count FROM horn WHERE date_send >= datetime('now', '-24 hours')`).get();
-  const oldest = db.prepare('SELECT MIN(date_send) as d FROM horn').get();
-  const newest = db.prepare('SELECT MAX(date_send) as d FROM horn').get();
+app.get('/api/stats/summary', async (req, res) => {
+  const total = await pool.query('SELECT COUNT(*) as count FROM horn');
+  const today = await pool.query(`SELECT COUNT(*) as count FROM horn WHERE date_send >= NOW() - INTERVAL '24 hours'`);
+  const oldest = await pool.query('SELECT MIN(date_send) as d FROM horn');
+  const newest = await pool.query('SELECT MAX(date_send) as d FROM horn');
 
-  // 서버별 카운트
   const serverCounts = {};
-  SERVERS.forEach(s => {
-    const row = db.prepare('SELECT COUNT(*) as count FROM horn WHERE server_name = ?').get(s);
-    serverCounts[s] = row.count;
-  });
+  for (const s of SERVERS) {
+    const r = await pool.query('SELECT COUNT(*) as count FROM horn WHERE server_name = $1', [s]);
+    serverCounts[s] = parseInt(r.rows[0].count);
+  }
 
   res.json({
-    total: total.count,
-    today: today.count,
-    oldest: oldest.d,
-    newest: newest.d,
+    total: parseInt(total.rows[0].count),
+    today: parseInt(today.rows[0].count),
+    oldest: oldest.rows[0].d,
+    newest: newest.rows[0].d,
     servers: serverCounts
   });
 });
 
 // ─── 서버 시작 ───────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`\n🎺 지금 에린에서는 — 백엔드 서버 시작`);
-  console.log(`   포트: ${PORT}`);
-  console.log(`   수집 서버: ${SERVERS.join(', ')}`);
-  console.log(`   http://localhost:${PORT}\n`);
+async function start() {
+  await initDB();
 
-  fetchAll();
-});
+  app.listen(PORT, () => {
+    console.log(`\n🎺 지금 에린에서는 — 백엔드 서버 시작`);
+    console.log(`   포트: ${PORT}`);
+    console.log(`   수집 서버: ${SERVERS.join(', ')}`);
+    console.log(`   http://localhost:${PORT}\n`);
+    fetchAll();
+  });
 
-cron.schedule('*/10 * * * *', () => {
-  fetchAll();
-});
+  cron.schedule('*/10 * * * *', fetchAll);
+  console.log('⏰ 10분마다 자동 수집 스케줄 등록 완료');
+}
 
-console.log('⏰ 10분마다 자동 수집 스케줄 등록 완료');
+start().catch(console.error);
