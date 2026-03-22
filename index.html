@@ -8,20 +8,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #222536;
-      --border: #2a2f42;
-      --border2: #363b52;
-      --gold: #f0d060;
-      --gold2: #f8e89a;
-      --blue: #7aabff;
-      --teal: #5ee7de;
-      --purple: #c4a0ff;
-      --red: #ff8080;
-      --text: #eef0f8;
-      --text2: #a0aabf;
-      --text3: #5a6380;
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --surface2: #eef0f5;
+      --border: #dde1ea;
+      --border2: #c4c9d8;
+      --gold: #b8860b;
+      --gold2: #d4a017;
+      --blue: #2563eb;
+      --teal: #0d9488;
+      --purple: #7c3aed;
+      --red: #dc2626;
+      --text: #1e2233;
+      --text2: #4a5068;
+      --text3: #9299b0;
+      --nav-bg: #1e2436;
       --nav-h: 64px;
     }
 
@@ -38,7 +39,7 @@
       content: '';
       position: fixed;
       inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.0'/%3E%3C/svg%3E");
       pointer-events: none;
       z-index: 0;
     }
@@ -48,15 +49,15 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       height: var(--nav-h);
-      background: rgba(15,17,23,0.95);
+      background: var(--nav-bg);
       backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       display: flex;
       align-items: center;
       padding: 0 32px;
       gap: 0;
       z-index: 100;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
     .nav-logo {
@@ -83,7 +84,7 @@
       border-radius: 9px;
       font-size: 15px;
       font-weight: 600;
-      color: var(--text3);
+      color: rgba(255,255,255,0.55);
       cursor: pointer;
       transition: all 0.15s;
       border: none;
@@ -94,12 +95,12 @@
       gap: 6px;
     }
 
-    .nav-btn:hover { color: var(--text2); background: var(--surface); }
+    .nav-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.08); }
 
     .nav-btn.active {
       color: var(--gold);
-      background: rgba(232,201,106,0.08);
-      border: 1px solid rgba(232,201,106,0.15);
+      background: rgba(184,134,11,0.15);
+      border: 1px solid rgba(184,134,11,0.3);
     }
 
     .nav-right {
@@ -114,7 +115,7 @@
       align-items: center;
       gap: 6px;
       font-size: 11px;
-      color: var(--text3);
+      color: rgba(255,255,255,0.45);
       font-family: 'JetBrains Mono', monospace;
     }
 
@@ -140,18 +141,18 @@
 
     /* ── 서버 선택 ── */
     select {
-      background: var(--surface);
-      border: 1px solid var(--border2);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
       border-radius: 8px;
       padding: 6px 10px;
-      color: var(--text2);
+      color: rgba(255,255,255,0.8);
       font-family: 'Noto Sans KR', sans-serif;
       font-size: 12px;
       outline: none;
       cursor: pointer;
     }
 
-    select option { background: var(--surface2); }
+    select option { background: var(--nav-bg); }
 
     /* ── 페이지 공통 ── */
     .page {
@@ -257,6 +258,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       padding: 13px 16px;
       display: flex;
       gap: 12px;
@@ -385,6 +387,7 @@
       padding: 18px 16px;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
 
     .card::before {
@@ -420,6 +423,7 @@
       border-radius: 14px;
       padding: 22px;
       margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
 
     .section-title {
@@ -634,7 +638,7 @@
     .landing-bg {
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at 50% 40%, rgba(232,201,106,0.06) 0%, transparent 70%);
+      background: radial-gradient(ellipse at 50% 30%, rgba(184,134,11,0.07) 0%, transparent 65%);
       pointer-events: none;
     }
 
@@ -680,7 +684,7 @@
 
     .server-btn {
       background: var(--surface);
-      border: 1px solid var(--border2);
+      border: 1px solid var(--border);
       border-radius: 14px;
       padding: 20px 16px;
       cursor: pointer;
@@ -688,14 +692,15 @@
       text-align: center;
       color: var(--text2);
       font-family: 'Noto Sans KR', sans-serif;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
     .server-btn:hover {
       border-color: var(--gold);
-      background: rgba(232,201,106,0.06);
+      background: rgba(184,134,11,0.05);
       color: var(--gold);
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(232,201,106,0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
     }
 
     .server-btn-name {
@@ -750,6 +755,7 @@
         padding: 10px 16px;
         height: auto;
         gap: 8px;
+        background: var(--nav-bg);
       }
 
       .nav-logo {
@@ -1303,8 +1309,8 @@
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}건` } } },
         scales: {
-          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { maxTicksLimit: 12, color: '#4d5470' } },
-          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4d5470' }, beginAtZero: true }
+          x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 12, color: '#9299b0' } },
+          y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#9299b0' }, beginAtZero: true }
         }
       }
     });
@@ -1320,7 +1326,7 @@
     if (donutChart) donutChart.destroy();
     donutChart = new Chart(document.getElementById('donutChart'), {
       type: 'doughnut',
-      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#13151e', borderWidth: 3, hoverOffset: 6 }] },
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#f4f6f9', borderWidth: 3, hoverOffset: 6 }] },
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '68%',
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw}건 (${total>0?Math.round(c.raw/total*100):0}%)` } } }
@@ -1352,8 +1358,8 @@
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}건` } } },
         scales: {
-          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { maxTicksLimit: 8, color: '#4d5470' } },
-          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4d5470' }, beginAtZero: true }
+          x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 8, color: '#9299b0' } },
+          y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#9299b0' }, beginAtZero: true }
         }
       }
     });
@@ -1423,8 +1429,8 @@
         responsive: true, maintainAspectRatio: false,
         plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw}건`}} },
         scales: {
-          x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d5470'} },
-          y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#4d5470'}, beginAtZero:true }
+          x: { grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#4d5470'} },
+          y: { grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#4d5470'}, beginAtZero:true }
         }
       }
     });
