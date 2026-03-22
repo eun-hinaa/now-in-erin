@@ -348,7 +348,7 @@ app.get('/api/stats/party', async (req, res) => {
 // 전체 통계 요약
 app.get('/api/stats/summary', async (req, res) => {
   const total = await pool.query('SELECT COUNT(*) as count FROM horn');
-  const today = await pool.query(`SELECT COUNT(*) as count FROM horn WHERE date_send >= NOW() - INTERVAL '24 hours'`);
+  const today = await pool.query(`SELECT COUNT(*) as count FROM horn WHERE date_send::timestamptz >= NOW() - INTERVAL '24 hours'`);
   const oldest = await pool.query('SELECT MIN(date_send) as d FROM horn');
   const newest = await pool.query('SELECT MAX(date_send) as d FROM horn');
 
