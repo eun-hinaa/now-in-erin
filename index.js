@@ -299,7 +299,7 @@ app.get('/api/stats/party', async (req, res) => {
   }
 
   const result = await pool.query(query, params);
-  const rows = result.rows.filter(r => !/길드원|길원/.test(r.message));
+const rows = result.rows.filter(r => !/길드원|길원/.test(r.message) && !/팝니다|팔아요|판매|삽니다|사요|구매|살게|팜|삼/.test(r.message));
 
   const dungeons = {
     '브리레흐 (1-3관)': { keywords: ['브리레흐', '브리', '브레', '1관', '2관', '3관', '1-3관', '브트팟', '브리트팟', '정코억분', '정코분배', '구구', '구슬구매'], count: 0, recent: [] },
