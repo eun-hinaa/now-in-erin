@@ -474,7 +474,7 @@ app.get('/api/user/:name/analyze', async (req, res) => {
     }
 
     const messages = rows.map(r => r.message).join('\n');
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `다음은 마비노기 게임의 "${name}" 유저가 거대한 외침의 뿔피리(서버 전체 채팅)로 보낸 메시지들이야:
 
