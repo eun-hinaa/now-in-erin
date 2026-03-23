@@ -1059,7 +1059,14 @@
     <div class="daily-summary-grid" id="dailySummaryGrid">
       <div class="placeholder"><div class="spinner"></div></div>
     </div>
-
+<div class="section-title" style="margin-top: 32px;">
+      🏆 명예의 전당 <span style="font-size:11px; font-weight:normal; margin-left:8px; color:var(--text3);">(역대 누적 랭킹)</span>
+    </div>
+    <div class="chart-section" style="padding: 0;">
+      <div id="hallOfFameList" style="display: flex; flex-direction: column;">
+        <div style="padding:20px; text-align:center; color:var(--text3); font-size:13px;">명예의 전당을 불러오는 중...</div>
+      </div>
+    </div>
     <div class="summary-grid">
       <div class="card c-gold">
         <div class="card-label">총 누적</div>
@@ -1446,6 +1453,7 @@
     
     // 🔥 요약 데이터도 함께 호출
     loadDailySummary(); 
+    loadHallOfFame(); //
 
     document.getElementById('analysisStatus').textContent = '로딩 중...';
 
@@ -1466,6 +1474,46 @@
     } catch (e) {
       document.getElementById('analysisStatus').textContent = '서버 연결 실패';
       setGlobalStatus('error', '서버 오류');
+    }
+  }
+
+  async function loadHallOfFame() {
+    const server = getServer();
+    const list = document.getElementById('hallOfFameList');
+    try {
+      const res = await fetch(`${API}/api/stats/hall-of-fame?server=${server}`);
+      const data = await res.json();
+
+      if (!data || data.length === 0) {
+        list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text3); font-size:13px;">아직 전당에 오른 유저가 없습니다.</div>';
+        return;
+      }
+
+      const medals = ['🥇', '🥈', '🥉'];
+      list.innerHTML = data.map((user, index) => {
+        const medal = index < 3 ? medals[index] : `<span style="display:inline-block; width:20px; text-align:center; color:var(--text3); font-size:12px;">${index + 1}</span>`;
+        const maskedName = user.name.length <= 2 ? user.name[0] + 'X' : user.name.slice(0, 2) + 'X'.repeat(user.name.length - 2);
+        
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:18px;">${medal}</span>
+              <span style="font-weight:700; font-size:15px; color:var(--text);">${maskedName}</span>
+              <span class="badge badge-server" style="font-size:10px;">${user.server_name}</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="color:var(--gold); font-weight:700; font-size:14px; font-family:'JetBrains Mono', monospace;">왕좌 ${user.win_count}회</div>
+              <div style="color:var(--text3); font-size:11px; font-family:'JetBrains Mono', monospace; margin-top:2px;">총 ${parseInt(user.total_horns).toLocaleString()}번 외침</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // 마지막 줄은 테두리 제거
+      if(list.lastElementChild) list.lastElementChild.style.borderBottom = 'none';
+
+    } catch (e) {
+      list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--red); font-size:13px;">명예의 전당을 불러올 수 없습니다.</div>';
     }
   }
 

@@ -160,6 +160,38 @@ app.get('/api/stats/daily', async (req, res) => {
   res.json(result.rows);
 });
 
+app.get('/api/stats/hall-of-fame', async (req, res) => {
+  const server = req.query.server;
+  let query = `
+    SELECT 
+      horn_king_name as name, 
+      server_name, 
+      COUNT(*) as win_count, 
+      SUM(horn_king_count) as total_horns
+    FROM daily_summary
+    WHERE horn_king_name != '없음' AND horn_king_name IS NOT NULL
+  `;
+  const params = [];
+
+  if (server && server !== 'all') {
+    params.push(server);
+    query += ` AND server_name = $1`;
+  }
+
+  query += `
+    GROUP BY horn_king_name, server_name
+    ORDER BY win_count DESC, total_horns DESC
+    LIMIT 10
+  `;
+
+  try {
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/stats/horn-king', async (req, res) => {
   try {
     const kings = {};
