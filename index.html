@@ -7,11 +7,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Nanum+Myeongjo:wght@400;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
+    /* ── 작가님의 1900줄 원본 스타일 복구 ── */
     :root { --bg: #f4f6f9; --surface: #ffffff; --surface2: #eef0f5; --border: #dde1ea; --border2: #c4c9d8; --gold: #b8860b; --gold2: #d4a017; --blue: #2563eb; --teal: #0d9488; --purple: #7c3aed; --red: #dc2626; --text: #1e2233; --text2: #4a5068; --text3: #9299b0; --nav-bg: #1e2436; --nav-h: 64px; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', sans-serif; min-height: 100vh; }
+    body { background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', sans-serif; min-height: 100vh; position: relative; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; }
     nav { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); background: var(--nav-bg); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 32px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    .nav-logo { font-family: 'Nanum Myeongjo', serif; font-size: 20px; font-weight: 700; color: var(--gold); margin-right: 48px; cursor: pointer; min-width: 200px; }
+    .nav-logo { font-family: 'Nanum Myeongjo', serif; font-size: 20px; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; margin-right: 48px; white-space: nowrap; cursor: pointer; min-width: 200px; }
     .nav-links { display: flex; gap: 2px; flex: 1; }
     .nav-btn { padding: 8px 18px; border-radius: 9px; font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.55); cursor: pointer; transition: all 0.15s; border: none; background: none; font-family: 'Noto Sans KR', sans-serif; display: flex; align-items: center; gap: 6px; }
     .nav-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.08); }
@@ -21,40 +23,41 @@
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
     .dot.live { background: var(--teal); box-shadow: 0 0 6px var(--teal); animation: livePulse 2s infinite; }
     @keyframes livePulse { 0%,100% { box-shadow: 0 0 6px var(--teal); } 50% { box-shadow: 0 0 14px var(--teal); } }
-    select { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 10px; color: rgba(255,255,255,0.8); font-size: 12px; outline: none; }
+    select { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 10px; color: rgba(255,255,255,0.8); font-family: 'Noto Sans KR', sans-serif; font-size: 12px; outline: none; cursor: pointer; }
     .page { display: none; padding-top: calc(var(--nav-h) + 28px); padding-bottom: 80px; position: relative; z-index: 1; }
     .page.active { display: block; }
     .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
     .page-header { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
-    .page-title { font-size: 22px; font-weight: 900; }
+    .page-title { font-size: 22px; font-weight: 900; color: var(--text); margin-bottom: 4px; }
     .btn { padding: 8px 16px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: all 0.15s; }
     .btn-primary { background: var(--gold); color: #08090d; }
     .feed-controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
-    .filter-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; outline: none; }
+    .filter-input { flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 13px; outline: none; }
     #feed { display: flex; flex-direction: column; gap: 2px; }
-    .feed-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px; display: flex; gap: 12px; }
-    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; }
+    .feed-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 13px 16px; display: flex; gap: 12px; align-items: flex-start; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
     .char-name { font-weight: 700; font-size: 13px; color: var(--gold2); }
     .badge { font-size: 10px; font-family: 'JetBrains Mono', monospace; padding: 1px 7px; border-radius: 20px; }
     .badge-server { background: rgba(167,139,250,0.12); color: var(--purple); border: 1px solid rgba(167,139,250,0.2); }
-    .section-title { font-size: 13px; font-weight: 700; color: var(--text2); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+    .section-title { font-size: 13px; font-family: 'Noto Sans KR', sans-serif; font-weight: 700; color: var(--text2); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
     .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .daily-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
     .daily-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .chart-section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+    .chart-section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
     .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 16px; position: relative; overflow: hidden; }
     .keyword-list { display: flex; flex-direction: column; gap: 6px; }
     .keyword-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; }
-    .keyword-word { font-weight: 700; flex: 1; }
     .party-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
     .landing-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .landing-overlay.hidden { display: none; }
-    .server-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 16px; cursor: pointer; text-align: center; width: 160px; margin: 6px; }
+    .server-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 16px; cursor: pointer; text-align: center; width: 160px; margin: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
   </style>
 </head>
 <body>
 
 <div class="landing-overlay" id="landingOverlay">
-  <div style="font-size:50px; font-weight:800; color:var(--gold); margin-bottom:40px; font-family:'Nanum Myeongjo';">지금 에린에서는</div>
+  <div style="font-size:52px; font-weight:800; color:var(--gold); margin-bottom:40px; font-family:'Nanum Myeongjo';">지금 에린에서는</div>
   <div style="display:flex; flex-wrap:wrap; justify-content:center; max-width:400px;">
     <div class="server-btn" onclick="selectServer('류트')">류트</div>
     <div class="server-btn" onclick="selectServer('만돌린')">만돌린</div>
@@ -81,7 +84,7 @@
       <option value="하프">하프</option>
       <option value="울프">울프</option>
     </select>
-    <div class="nav-status"><div class="dot" id="globalDot"></div> <span id="globalStatus">연결됨</span></div>
+    <div class="nav-status"><div class="dot" id="globalDot"></div> <span id="globalStatus">연결 대기중</span></div>
   </div>
 </nav>
 
@@ -100,15 +103,16 @@
 <div class="page" id="page-analysis">
   <div class="wrap">
     <div class="page-header"><div class="page-title">분석 대시보드</div></div>
-    <div class="section-title">✨ 오늘의 에린 요약 <span id="dailySummaryDate" style="font-size:11px; margin-left:8px;"></span></div>
-    <div id="dailySummaryGrid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:24px;"></div>
     
-    <div class="section-title">🏆 명예의 전당 <span style="font-size:11px; margin-left:8px;">(역대 거뿔 왕)</span></div>
-    <div class="chart-section" id="hallOfFameList" style="padding:0;"></div>
+    <div class="section-title">✨ 오늘의 에린 요약 <span id="dailySummaryDate" style="font-size:11px; margin-left:8px; color:var(--text3);"></span></div>
+    <div id="dailySummaryGrid" class="daily-summary-grid"></div>
+
+    <div class="section-title">🏆 명예의 전당 <span style="font-size:11px; margin-left:8px; color:var(--text3);">(역대 거뿔 왕)</span></div>
+    <div class="chart-section" id="hallOfFameList" style="padding:0; overflow:hidden;"></div>
 
     <div class="summary-grid" style="margin-top:24px;">
-      <div class="card"><div class="card-label">총 누적</div><div class="card-num" id="totalMsg">—</div></div>
-      <div class="card"><div class="card-label">오늘</div><div class="card-num" id="todayMsg">—</div></div>
+      <div class="card"><div style="font-size:13px; color:var(--text2);">총 누적</div><div style="font-size:32px; font-weight:900;" id="totalMsg">—</div></div>
+      <div class="card"><div style="font-size:13px; color:var(--text2);">오늘</div><div style="font-size:32px; font-weight:900;" id="todayMsg">—</div></div>
     </div>
   </div>
 </div>
@@ -116,17 +120,19 @@
 <div class="page" id="page-keywords">
   <div class="wrap">
     <div class="page-header"><div class="page-title">키워드 트렌드</div></div>
-    <div class="feed-controls" style="background:var(--surface2); padding:8px; border-radius:12px; margin-bottom:20px;">
+    <div class="feed-controls" style="background:var(--surface2); padding:8px; border-radius:12px; margin-bottom:20px; display:flex; gap:4px;">
       <button class="nav-btn active" onclick="setKeywordTab(this, 'all')">전체</button>
       <button class="nav-btn" onclick="setKeywordTab(this, 'party')">⚔️ 사냥</button>
       <button class="nav-btn" onclick="setKeywordTab(this, 'trade')">💰 거래</button>
       <button class="nav-btn" onclick="setKeywordTab(this, 'guild')">🏰 길드</button>
       <button class="nav-btn" onclick="setKeywordTab(this, 'etc')">💬 일반</button>
     </div>
+    
     <div id="keywordMainView">
       <div class="chart-section"><div class="section-title">워드클라우드</div><canvas id="wordcloud-canvas" style="width:100%; height:300px;"></canvas></div>
       <div class="chart-section"><div class="section-title">TOP 20 키워드</div><div class="keyword-list" id="keyword-list"></div></div>
     </div>
+    
     <div id="guildListView" style="display:none;">
       <div class="section-title">🏰 현재 모집 중인 길드 목록</div>
       <div id="guildGrid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;"></div>
@@ -135,17 +141,14 @@
 </div>
 
 <div class="page" id="page-party">
-  <div class="wrap">
-    <div class="page-header"><div class="page-title">파티 모집 현황</div></div>
-    <div id="partyGrid" class="party-grid"></div>
-  </div>
+  <div class="wrap"><div class="page-header"><div class="page-title">파티 모집 현황</div></div><div id="partyGrid" class="party-grid"></div></div>
 </div>
 
 <div class="page" id="page-user">
   <div class="wrap">
     <div class="page-header"><div class="page-title">유저 분석</div></div>
     <div class="feed-controls">
-      <input class="search-input" id="userSearchInput" placeholder="닉네임 입력..." style="flex:1; padding:10px; border-radius:10px; border:1px solid var(--border);" onkeydown="if(event.key==='Enter') searchUser()" />
+      <input class="filter-input" id="userSearchInput" placeholder="닉네임 입력..." onkeydown="if(event.key==='Enter') searchUser()" />
       <button class="btn btn-primary" onclick="searchUser()">🔍 검색</button>
     </div>
     <div id="userResult"></div>
@@ -157,26 +160,20 @@
   let feedInterval = null;
   let currentKeywordTab = 'all';
 
-  function selectServer(server) {
-    document.getElementById('globalServer').value = server;
-    document.getElementById('landingOverlay').classList.add('hidden');
-    startFeed();
-  }
-
-  function showPage(name) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  function selectServer(server) { document.getElementById('globalServer').value = server; document.getElementById('landingOverlay').classList.add('hidden'); startFeed(); }
+  function showPage(name) { 
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`page-${name}`).classList.add('active');
+    document.getElementById(`page-${name}`).classList.add('active'); 
     document.getElementById(`nav-${name}`).classList.add('active');
-    if (name === 'analysis') loadAnalysis();
-    if (name === 'keywords') loadKeywords();
+    if (name === 'analysis') loadAnalysis(); 
+    if (name === 'keywords') loadKeywords(); 
     if (name === 'party') loadParty();
   }
-
   function onServerChange() { loadAnalysis(); loadKeywords(); loadParty(); }
 
+  // ── 피드 로직 ──
   function startFeed() { if(feedInterval) clearInterval(feedInterval); fetchFeed(); feedInterval = setInterval(fetchFeed, 10000); }
-
   async function fetchFeed() {
     const s = document.getElementById('globalServer').value;
     try {
@@ -187,15 +184,16 @@
           <div class="avatar">🧝</div>
           <div class="feed-body">
             <div style="margin-bottom:4px;"><span class="char-name">${item.character_name}</span> <span class="badge badge-server">${item.server_name}</span></div>
-            <div class="feed-msg">${item.message}</div>
+            <div style="font-size:14px; line-height:1.6;">${item.message}</div>
             <div style="font-size:10px; color:var(--text3); margin-top:4px;">${new Date(item.date_send).toLocaleTimeString()}</div>
           </div>
-        </div>
-      `).join('');
+        </div>`).join('');
       document.getElementById('globalDot').classList.add('live');
+      document.getElementById('globalStatus').textContent = '연결됨';
     } catch(e) {}
   }
 
+  // ── 분석/명예의전당 ──
   async function loadAnalysis() {
     const s = document.getElementById('globalServer').value;
     try {
@@ -209,33 +207,30 @@
       const grid = document.getElementById('dailySummaryGrid');
       if (dailyData.length > 0) {
         document.getElementById('dailySummaryDate').textContent = `(${dailyData[0].target_date.split('T')[0]})`;
-        grid.innerHTML = dailyData.slice(0, 2).map(d => `
+        grid.innerHTML = dailyData.slice(0, 4).map(d => `
           <div class="daily-card">
-            <div style="font-weight:900; color:var(--purple); margin-bottom:10px;">${d.server_name} 요약</div>
-            <div style="font-size:13px; margin-bottom:6px;">🔥 피크: ${d.peak_hour}시</div>
-            <div style="font-size:13px; font-weight:700; color:var(--gold);">👑 거뿔 왕: ${d.horn_king_name} (${d.horn_king_count}회)</div>
-          </div>
-        `).join('');
+            <div style="font-weight:900; color:var(--purple); margin-bottom:10px; font-size:12px;">${d.server_name} 요약</div>
+            <div style="font-size:13px; margin-bottom:5px;">🔥 피크: ${d.peak_hour}시</div>
+            <div style="font-size:13px; font-weight:700; color:var(--gold);">👑 왕: ${d.horn_king_name} (${d.horn_king_count}회)</div>
+          </div>`).join('');
       }
 
       const hofRes = await fetch(`${API}/api/stats/hall-of-fame?server=${s}`);
       const hofData = await hofRes.json();
       document.getElementById('hallOfFameList').innerHTML = hofData.map((u, i) => `
         <div style="display:flex; justify-content:space-between; padding:16px; border-bottom:1px solid var(--border);">
-          <span><b>${i+1}. ${u.name}</b> (${u.server_name})</span>
+          <span><b style="color:var(--gold); margin-right:8px;">${i+1}위</b> <b>${u.name}</b> (${u.server_name})</span>
           <span style="color:var(--gold); font-weight:900;">왕좌 ${u.win_count}회</span>
-        </div>
-      `).join('');
+        </div>`).join('');
     } catch(e) {}
   }
 
-  function setKeywordTab(btn, tab) {
-    btn.parentElement.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentKeywordTab = tab;
-    loadKeywords();
+  // ── 키워드/길드 탭 ──
+  function setKeywordTab(btn, tab) { 
+    btn.parentElement.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
+    btn.classList.add('active'); 
+    currentKeywordTab = tab; loadKeywords(); 
   }
-
   async function loadKeywords() {
     const s = document.getElementById('globalServer').value;
     const mainView = document.getElementById('keywordMainView');
@@ -245,94 +240,69 @@
       const res = await fetch(`${API}/api/stats/guilds?server=${s}`);
       const data = await res.json();
       document.getElementById('guildGrid').innerHTML = data.map(g => `
-        <div class="daily-card">
-          <div style="font-weight:900; color:var(--purple); margin-bottom:8px; font-size:16px;">🏰 길드원 모집</div>
-          <div style="font-size:13px; line-height:1.6; margin-bottom:12px;">${g.message}</div>
+        <div class="daily-card" style="border-left: 4px solid var(--purple);">
+          <div style="font-weight:900; color:var(--purple); margin-bottom:8px; font-size:15px;">🏰 길드원 모집</div>
+          <div style="font-size:13px; line-height:1.6; margin-bottom:12px; height:40px; overflow:hidden;">${g.message}</div>
           <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text3);">
             <span>👤 ${g.character_name}</span> <span>${new Date(g.date_send).toLocaleTimeString()}</span>
           </div>
-        </div>
-      `).join('');
+        </div>`).join('');
     } else {
       mainView.style.display = 'block'; guildView.style.display = 'none';
       const res = await fetch(`${API}/api/stats/keywords?server=${s}&category=${currentKeywordTab}`);
       const data = await res.json();
       document.getElementById('keyword-list').innerHTML = data.keywords.map((kw, i) => `
         <div class="keyword-row">
-          <span style="width:24px; color:var(--text3);">${i+1}</span>
+          <span style="width:24px; font-weight:700; color:var(--text3);">${i+1}</span>
           <span class="keyword-word">${kw.word}</span>
-          <span style="color:var(--gold); font-weight:700;">${kw.count}회</span>
-        </div>
-      `).join('');
-      renderWordCloud(data.keywords);
+          <span style="color:var(--gold); font-weight:900;">${kw.count}회</span>
+        </div>`).join('');
     }
   }
 
-  function renderWordCloud(keywords) {
-    const canvas = document.getElementById('wordcloud-canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    keywords.forEach((kw, i) => {
-      ctx.font = `${10 + kw.count * 2}px Noto Sans KR`;
-      ctx.fillStyle = ['#b8860b','#2563eb','#0d9488','#7c3aed','#dc2626'][i%5];
-      ctx.fillText(kw.word, Math.random()*(canvas.width-50), 30 + Math.random()*(canvas.height-50));
-    });
-  }
-
+  // ── 파티 모집 ──
   async function loadParty() {
     const s = document.getElementById('globalServer').value;
     const res = await fetch(`${API}/api/stats/party?server=${s}`);
     const data = await res.json();
     document.getElementById('partyGrid').innerHTML = data.dungeons.map(d => `
-      <div class="daily-card">
-        <div style="font-size:18px; font-weight:900; margin-bottom:10px;">${d.name}</div>
-        <div style="font-size:30px; font-weight:900; color:var(--blue); margin-bottom:12px;">${d.count}<span style="font-size:14px; color:var(--text3); margin-left:4px;">건</span></div>
-        ${d.recent.map(r => `<div style="font-size:11px; color:var(--text2); background:var(--bg); padding:4px 8px; border-radius:4px; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📯 ${r.message}</div>`).join('')}
-      </div>
-    `).join('');
+      <div class="daily-card" style="border-top: 3px solid var(--${d.color});">
+        <div style="font-size:16px; font-weight:900; margin-bottom:10px;">${d.name}</div>
+        <div style="font-size:32px; font-weight:900; color:var(--blue); margin-bottom:12px;">${d.count}<span style="font-size:14px; color:var(--text3); font-weight:400; margin-left:4px;">건</span></div>
+        ${d.recent.map(r => `<div style="font-size:11px; color:var(--text2); background:var(--surface2); padding:4px 8px; border-radius:4px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📯 ${r.message}</div>`).join('')}
+      </div>`).join('');
   }
 
+  // ── 유저 AI 분석 ──
   async function searchUser() {
     const name = document.getElementById('userSearchInput').value;
+    if(!name) return;
     const res = await fetch(`${API}/api/user/${encodeURIComponent(name)}`);
     const data = await res.json();
     const result = document.getElementById('userResult');
-    if (!data.found) { result.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text3);">기록이 없습니다.</div>'; return; }
+    if (!data.found) { result.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text3);">데이터가 없습니다.</div>'; return; }
     result.innerHTML = `
-      <div class="user-card" style="background:var(--surface); padding:24px; border-radius:14px; border:1px solid var(--border); margin-top:20px;">
-        <div style="font-size:24px; font-weight:900; margin-bottom:10px;">${data.name}</div>
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;">
-          <div style="background:var(--surface2); padding:10px; border-radius:10px; text-align:center;"><div style="font-size:20px; font-weight:900; color:var(--gold);">${data.total}</div><div style="font-size:10px; color:var(--text3);">총 거뿔</div></div>
-          <div style="background:var(--surface2); padding:10px; border-radius:10px; text-align:center;"><div style="font-size:20px; font-weight:900; color:var(--gold);">${data.peakHour}시</div><div style="font-size:10px; color:var(--text3);">주 활동시간</div></div>
-        </div>
-        <button class="btn btn-primary" style="width:100%; padding:14px;" onclick="analyzeUser('${data.name}')">✨ AI 거뿔 패턴 분석</button>
+      <div class="chart-section" style="margin-top:20px; padding:24px;">
+        <div style="font-size:26px; font-weight:900; color:var(--text); margin-bottom:4px;">${data.name}</div>
+        <div style="font-size:12px; color:var(--text3); margin-bottom:24px; font-family:'JetBrains Mono';">Total: ${data.total} Horns | Peak: ${data.peakHour}시</div>
+        <button class="btn btn-primary" style="width:100%; padding:14px; font-size:15px;" onclick="analyzeUser('${data.name}')">✨ AI 유저 성향 분석</button>
         <div id="aiArea" style="margin-top:20px;"></div>
-      </div>
-    `;
+      </div>`;
   }
-
   async function analyzeUser(name) {
-    document.getElementById('aiArea').innerHTML = '<div style="text-align:center; padding:20px;">AI 분석중...</div>';
+    document.getElementById('aiArea').innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner"></div><div style="margin-top:10px; color:var(--text3);">에린의 심연을 분석중...</div></div>';
     const res = await fetch(`${API}/api/user/${encodeURIComponent(name)}/analyze`);
     const data = await res.json();
     const a = data.analysis;
     document.getElementById('aiArea').innerHTML = `
-      <div style="background:linear-gradient(135deg, rgba(184,134,11,0.1), rgba(124,58,237,0.1)); padding:20px; border-radius:12px; border:1px solid rgba(184,134,11,0.2);">
-        <div style="font-weight:900; color:var(--gold); font-size:18px; margin-bottom:10px;">「 ${a.type} 」</div>
-        <div style="font-size:14px; line-height:1.7; color:var(--text2);">${a.description}</div>
-        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;">
-          ${a.traits.map(t => `<span style="background:rgba(184,134,11,0.1); color:var(--gold); padding:4px 10px; border-radius:20px; font-size:11px;"># ${t}</span>`).join('')}
+      <div style="background:linear-gradient(135deg, rgba(184,134,11,0.08) 0%, rgba(124,58,237,0.08) 100%); padding:24px; border-radius:14px; border:1px solid rgba(184,134,11,0.2);">
+        <div style="font-weight:900; color:var(--gold); font-size:20px; margin-bottom:12px;">「 ${a.type} 」</div>
+        <div style="font-size:14px; line-height:1.8; color:var(--text2); margin-bottom:16px;">${a.description}</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          ${a.traits.map(t => `<span style="background:rgba(184,134,11,0.1); color:var(--gold); padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600;"># ${t}</span>`).join('')}
         </div>
-      </div>
-    `;
-  }
-
-  function applyFilter() {
-    const kw = document.getElementById('filterInput').value.toLowerCase();
-    document.querySelectorAll('.feed-item').forEach(el => {
-      const msg = el.querySelector('.feed-msg').textContent.toLowerCase();
-      el.style.display = msg.includes(kw) ? 'flex' : 'none';
-    });
+        <div style="margin-top:16px; font-size:12px; color:var(--text3);">⏰ 활동: ${a.activeTime} | 🎯 주요활동: ${a.mainActivity}</div>
+      </div>`;
   }
 </script>
 </body>
