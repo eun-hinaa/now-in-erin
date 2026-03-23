@@ -7,64 +7,984 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Nanum+Myeongjo:wght@400;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
-    /* ── 작가님의 1900줄 원본 스타일 복구 ── */
-    :root { --bg: #f4f6f9; --surface: #ffffff; --surface2: #eef0f5; --border: #dde1ea; --border2: #c4c9d8; --gold: #b8860b; --gold2: #d4a017; --blue: #2563eb; --teal: #0d9488; --purple: #7c3aed; --red: #dc2626; --text: #1e2233; --text2: #4a5068; --text3: #9299b0; --nav-bg: #1e2436; --nav-h: 64px; }
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --surface2: #eef0f5;
+      --border: #dde1ea;
+      --border2: #c4c9d8;
+      --gold: #b8860b;
+      --gold2: #d4a017;
+      --blue: #2563eb;
+      --teal: #0d9488;
+      --purple: #7c3aed;
+      --red: #dc2626;
+      --text: #1e2233;
+      --text2: #4a5068;
+      --text3: #9299b0;
+      --nav-bg: #1e2436;
+      --nav-h: 64px;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', sans-serif; min-height: 100vh; position: relative; }
-    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; }
-    nav { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); background: var(--nav-bg); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 32px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    .nav-logo { font-family: 'Nanum Myeongjo', serif; font-size: 20px; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; margin-right: 48px; white-space: nowrap; cursor: pointer; min-width: 200px; }
-    .nav-links { display: flex; gap: 2px; flex: 1; }
-    .nav-btn { padding: 8px 18px; border-radius: 9px; font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.55); cursor: pointer; transition: all 0.15s; border: none; background: none; font-family: 'Noto Sans KR', sans-serif; display: flex; align-items: center; gap: 6px; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.0'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── 네비게이션 ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: var(--nav-bg);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      gap: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .nav-logo {
+      font-family: 'Nanum Myeongjo', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.12em;
+      margin-right: 48px;
+      white-space: nowrap;
+      cursor: pointer;
+      min-width: 200px;
+      opacity: 0.95;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .nav-btn {
+      padding: 8px 18px;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.55);
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+      background: none;
+      font-family: 'Noto Sans KR', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .nav-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.08); }
-    .nav-btn.active { color: var(--gold); background: rgba(184,134,11,0.15); border: 1px solid rgba(184,134,11,0.3); }
-    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-    .nav-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,0.45); font-family: 'JetBrains Mono', monospace; }
-    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
-    .dot.live { background: var(--teal); box-shadow: 0 0 6px var(--teal); animation: livePulse 2s infinite; }
-    @keyframes livePulse { 0%,100% { box-shadow: 0 0 6px var(--teal); } 50% { box-shadow: 0 0 14px var(--teal); } }
-    select { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 10px; color: rgba(255,255,255,0.8); font-family: 'Noto Sans KR', sans-serif; font-size: 12px; outline: none; cursor: pointer; }
-    .page { display: none; padding-top: calc(var(--nav-h) + 28px); padding-bottom: 80px; position: relative; z-index: 1; }
+
+    .nav-btn.active {
+      color: var(--gold);
+      background: rgba(184,134,11,0.15);
+      border: 1px solid rgba(184,134,11,0.3);
+    }
+
+    .nav-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text3);
+      flex-shrink: 0;
+    }
+
+    .dot.live {
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
+      animation: livePulse 2s infinite;
+    }
+
+    .dot.error { background: var(--red); }
+
+    @keyframes livePulse {
+      0%,100% { box-shadow: 0 0 6px var(--teal); }
+      50% { box-shadow: 0 0 14px var(--teal); }
+    }
+
+    /* ── 서버 선택 ── */
+    select {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: rgba(255,255,255,0.8);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select option { background: var(--nav-bg); }
+
+    /* ── 페이지 공통 ── */
+    .page {
+      display: none;
+      padding-top: calc(var(--nav-h) + 28px);
+      padding-bottom: 80px;
+      position: relative;
+      z-index: 1;
+    }
+
     .page.active { display: block; }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
-    .page-header { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
-    .page-title { font-size: 22px; font-weight: 900; color: var(--text); margin-bottom: 4px; }
-    .btn { padding: 8px 16px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: all 0.15s; }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .page-header {
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .page-sub {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── 버튼 ── */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
     .btn-primary { background: var(--gold); color: #08090d; }
-    .feed-controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
-    .filter-input { flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 13px; outline: none; }
-    #feed { display: flex; flex-direction: column; gap: 2px; }
-    .feed-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 13px 16px; display: flex; gap: 12px; align-items: flex-start; }
-    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .btn-primary:hover { background: var(--gold2); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-ghost { background: var(--surface); color: var(--text2); border: 1px solid var(--border2); }
+    .btn-ghost:hover { color: var(--text); background: var(--surface2); }
+    .btn-stop { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.25); }
+    .btn-stop:hover { background: rgba(248,113,113,0.2); }
+
+    /* ══════════════════════════════
+       피드 페이지
+    ══════════════════════════════ */
+
+    .feed-controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-input {
+      flex: 1;
+      min-width: 160px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .filter-input:focus { border-color: var(--border2); }
+    .filter-input::placeholder { color: var(--text3); }
+
+    .feed-meta {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: auto;
+    }
+
+    .feed-meta span { color: var(--gold); }
+
+    #feed {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .feed-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      padding: 13px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      animation: slideIn 0.25s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .feed-item.is-new {
+      border-color: rgba(78,205,196,0.3);
+      background: rgba(78,205,196,0.03);
+    }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .feed-body { flex: 1; min-width: 0; }
+
+    .feed-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 3px;
+      flex-wrap: wrap;
+    }
+
     .char-name { font-weight: 700; font-size: 13px; color: var(--gold2); }
-    .badge { font-size: 10px; font-family: 'JetBrains Mono', monospace; padding: 1px 7px; border-radius: 20px; }
+
+    .badge {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 1px 7px;
+      border-radius: 20px;
+    }
+
     .badge-server { background: rgba(167,139,250,0.12); color: var(--purple); border: 1px solid rgba(167,139,250,0.2); }
-    .section-title { font-size: 13px; font-family: 'Noto Sans KR', sans-serif; font-weight: 700; color: var(--text2); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+    .badge-party { background: rgba(91,141,238,0.12); color: var(--blue); border: 1px solid rgba(91,141,238,0.2); }
+    .badge-trade { background: rgba(232,201,106,0.1); color: var(--gold); border: 1px solid rgba(232,201,106,0.18); }
+    .badge-new { background: rgba(78,205,196,0.12); color: var(--teal); border: 1px solid rgba(78,205,196,0.25); }
+
+    .feed-msg { font-size: 14px; color: var(--text); line-height: 1.6; word-break: break-all; }
+
+    .feed-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+    .divider {
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text3);
+      padding: 8px 0;
+      position: relative;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: calc(50% - 60px);
+      height: 1px;
+      background: var(--border);
+    }
+
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text3);
+    }
+
+    .empty-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.4; }
+    .empty-title { font-size: 15px; color: var(--text2); margin-bottom: 6px; }
+    .empty-sub { font-size: 12px; line-height: 1.6; }
+
+    .loading-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 24px;
+      color: var(--text3);
+      font-size: 13px;
+    }
+
+    /* ══════════════════════════════
+       분석 페이지
+    ══════════════════════════════ */
+
+    .analysis-controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 680px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 16px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .card.c-gold::before { background: linear-gradient(90deg, var(--gold), transparent); }
+    .card.c-blue::before { background: linear-gradient(90deg, var(--blue), transparent); }
+    .card.c-teal::before { background: linear-gradient(90deg, var(--teal), transparent); }
+    .card.c-purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+
+    .card-label { font-size: 13px; color: var(--text2); font-family: 'Noto Sans KR', monospace; font-weight: 500; margin-bottom: 8px; }
+    .card-num { font-size: 32px; font-weight: 900; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+    .card.c-gold .card-num { color: var(--gold); }
+    .card.c-blue .card-num { color: var(--blue); }
+    .card.c-teal .card-num { color: var(--teal); }
+    .card.c-purple .card-num { color: var(--purple); }
+    .card-desc { font-size: 13px; color: var(--text3); margin-top: 5px; }
+
+    .server-bars { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+    .server-bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+    .server-bar-label { color: var(--text3); width: 36px; font-family: 'JetBrains Mono', monospace; }
+    .server-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .server-bar-fill { height: 100%; border-radius: 2px; background: var(--gold); transition: width 0.6s ease; }
+    .server-bar-count { color: var(--text3); font-family: 'JetBrains Mono', monospace; font-size: 10px; width: 36px; text-align: right; }
+
+    .chart-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 700;
+      color: var(--text2);
+      letter-spacing: 0.02em;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-    .daily-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
-    .daily-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .chart-section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 16px; position: relative; overflow: hidden; }
-    .keyword-list { display: flex; flex-direction: column; gap: 6px; }
-    .keyword-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; }
-    .party-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-    .landing-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+    .chart-wrap { position: relative; height: 220px; }
+    .chart-wrap-sm { position: relative; height: 180px; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+    .peak-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(232,201,106,0.08);
+      border: 1px solid rgba(232,201,106,0.18);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      color: var(--gold);
+      margin-top: 12px;
+    }
+
+    .legend { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .legend-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .legend-left { display: flex; align-items: center; gap: 8px; color: var(--text2); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+    .legend-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text3); }
+
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 8px;
+      color: var(--text3);
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── 오늘의 에린 요약 (복원됨) ── */
+    .daily-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 680px) { .daily-summary-grid { grid-template-columns: 1fr; } }
+    
+    .daily-card {
+      background: linear-gradient(135deg, rgba(37,99,235,0.04) 0%, rgba(124,58,237,0.04) 100%);
+      border: 1px solid rgba(167,139,250,0.2);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .daily-card-header { font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+    .daily-stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 4px; }
+    .daily-stat-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .daily-stat-label { color: var(--text2); font-family: 'Noto Sans KR', sans-serif;}
+    .daily-stat-val { font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+    .daily-stat-val.highlight { color: var(--gold); }
+
+    /* ══════════════════════════════
+       키워드 페이지
+    ══════════════════════════════ */
+
+    .keyword-controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* 워드클라우드 */
+    .wordcloud-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+
+    #wordcloud-canvas {
+      width: 100%;
+      height: 320px;
+      display: block;
+    }
+
+    /* 키워드 랭킹 */
+    .keyword-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .keyword-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: all 0.15s;
+      cursor: default;
+    }
+    .keyword-row:nth-child(1) { border-color: rgba(240,208,96,0.3); background: rgba(240,208,96,0.04); }
+    .keyword-row:nth-child(2) { border-color: rgba(200,200,200,0.2); }
+    .keyword-row:nth-child(3) { border-color: rgba(205,127,50,0.2); }
+
+    .keyword-row:hover { border-color: var(--border2); }
+
+    .keyword-rank {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text3);
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .keyword-rank.top { color: var(--gold); font-weight: 700; }
+
+    .keyword-word {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .keyword-bar-track {
+      width: 140px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .keyword-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    .keyword-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text2);
+      width: 48px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .keyword-status {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: 4px;
+    }
+
+    .party-grid { display: grid; grid-template-columns: repeat(2,1fr); gap:14px; margin-bottom:20px; }
+    @media(max-width:600px){.party-grid{grid-template-columns:1fr;}}
+    .dungeon-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; position:relative; overflow:hidden; transition:border-color 0.2s; }
+    .dungeon-card:hover{border-color:var(--border2);}
+    .dungeon-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+    .dungeon-card.d-bri::before{background:linear-gradient(90deg,var(--blue),transparent);}
+    .dungeon-card.d-crom::before{background:linear-gradient(90deg,var(--red),transparent);}
+    .dungeon-card.d-glen::before{background:linear-gradient(90deg,var(--teal),transparent);}
+    .dungeon-card.d-etc::before{background:linear-gradient(90deg,#4d5470,transparent);}
+    .dungeon-card.d-bri4::before{background:linear-gradient(90deg,#818cf8,transparent);}
+    .dungeon-card.d-crom2::before{background:linear-gradient(90deg,#fb923c,transparent);}
+    .dungeon-card.d-glen2::before{background:linear-gradient(90deg,#34d399,transparent);}
+    .dungeon-card.d-bri4 .dungeon-count{color:#818cf8;}
+    .dungeon-card.d-crom2 .dungeon-count{color:#fb923c;}
+    .dungeon-card.d-glen2 .dungeon-count{color:#34d399;}
+    .dungeon-card.d-purple::before{background:linear-gradient(90deg,var(--purple),transparent);}
+    .dungeon-card.d-purple .dungeon-count{color:var(--purple);}
+    .dungeon-name{font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px;}
+    .dungeon-count{font-size:36px;font-weight:900;font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+    .dungeon-card.d-bri .dungeon-count{color:var(--blue);}
+    .dungeon-card.d-crom .dungeon-count{color:var(--red);}
+    .dungeon-card.d-glen .dungeon-count{color:var(--teal);}
+    .dungeon-card.d-etc .dungeon-count{color:var(--text3);}
+    .dungeon-recent{display:flex;flex-direction:column;gap:5px;}
+    .dungeon-recent-item{font-size:12px;color:var(--text2);background:var(--bg);border-radius:6px;padding:6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .member-chart-wrap{position:relative;height:200px;}
+    .party-total-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(91,141,238,0.1);border:1px solid rgba(91,141,238,0.2);border-radius:8px;padding:8px 16px;font-size:13px;color:var(--blue);margin-bottom:20px;}
+
+    /* ── 서버 선택 랜딩 ── */
+    .landing-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
     .landing-overlay.hidden { display: none; }
-    .server-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 16px; cursor: pointer; text-align: center; width: 160px; margin: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+    .landing-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 30%, rgba(184,134,11,0.07) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .landing-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .landing-title {
+      font-family: 'Nanum Myeongjo', serif;
+      font-size: 60px;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 0.16em;
+      margin-bottom: 14px;
+      line-height: 1.2;
+      opacity: 0.94;
+    }
+
+    .landing-sub {
+      font-size: 14px;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 48px;
+    }
+
+    .landing-question {
+      font-size: 16px;
+      color: var(--text2);
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+
+    .server-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      max-width: 360px;
+      margin: 0 auto 20px;
+    }
+
+    .server-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      color: var(--text2);
+      font-family: 'Noto Sans KR', sans-serif;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .server-btn:hover {
+      border-color: var(--gold);
+      background: rgba(184,134,11,0.05);
+      color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    .server-btn-name {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .server-btn-desc {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .landing-all-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 24px;
+      color: var(--text3);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Noto Sans KR', sans-serif;
+      margin-top: 8px;
+    }
+
+    .landing-all-btn:hover { color: var(--text2); border-color: var(--border2); }
+    .server-btn-king {
+      font-size: 13px;
+      color: var(--gold);
+      margin-top: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      opacity: 0.85;
+      line-height: 1.4;
+    }
+
+    .server-btn-king-label {
+      font-size: 10px;
+      color: var(--text3);
+      margin-bottom: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+
+    /* ── 모바일 반응형 ── */
+    @media (max-width: 640px) {
+      :root { --nav-h: 104px; }
+
+      nav {
+        flex-wrap: wrap;
+        padding: 10px 16px;
+        height: auto;
+        gap: 8px;
+        background: var(--nav-bg);
+      }
+
+      .nav-logo {
+        font-size: 18px;
+        margin-right: auto;
+        min-width: unset;
+      }
+
+      .nav-right {
+        margin-left: 0;
+        order: 1;
+      }
+
+      .nav-links {
+        order: 2;
+        width: 100%;
+        flex: unset;
+        gap: 4px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+      }
+
+      .nav-links::-webkit-scrollbar { display: none; }
+
+      .nav-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .wrap { padding: 0 12px; }
+
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+
+      .two-col { grid-template-columns: 1fr; }
+
+      .party-grid { grid-template-columns: 1fr; }
+
+      .landing-title { font-size: 40px; }
+
+      .server-btn-grid { grid-template-columns: repeat(2, 1fr); max-width: 320px; }
+
+      .keyword-bar-track { width: 80px; }
+    }
+
+    /* ── 유저 분석 ── */
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .search-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .search-input:focus { border-color: var(--gold); }
+    .search-input::placeholder { color: var(--text3); }
+
+    .user-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .user-name {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .user-sub {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 20px;
+    }
+
+    .user-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .user-stat {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .user-stat-num {
+      font-size: 22px;
+      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--gold);
+    }
+
+    .user-stat-label {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 4px;
+    }
+
+    .ai-card {
+      background: linear-gradient(135deg, rgba(184,134,11,0.06) 0%, rgba(124,58,237,0.06) 100%);
+      border: 1px solid rgba(184,134,11,0.2);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .ai-type {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    .ai-desc {
+      font-size: 14px;
+      color: var(--text2);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+
+    .ai-traits {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ai-trait {
+      background: rgba(184,134,11,0.1);
+      border: 1px solid rgba(184,134,11,0.2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--gold);
+    }
+
+    .recent-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .recent-msg-item {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   </style>
 </head>
 <body>
 
 <div class="landing-overlay" id="landingOverlay">
-  <div style="font-size:52px; font-weight:800; color:var(--gold); margin-bottom:40px; font-family:'Nanum Myeongjo';">지금 에린에서는</div>
-  <div style="display:flex; flex-wrap:wrap; justify-content:center; max-width:400px;">
-    <div class="server-btn" onclick="selectServer('류트')">류트</div>
-    <div class="server-btn" onclick="selectServer('만돌린')">만돌린</div>
-    <div class="server-btn" onclick="selectServer('하프')">하프</div>
-    <div class="server-btn" onclick="selectServer('울프')">울프</div>
+  <div class="landing-bg"></div>
+  <div class="landing-content">
+    <div class="landing-title">지금 에린에서는</div>
+    <div class="landing-sub">// 거대한 외침의 뿔피리 실시간 분석</div>
+    <div class="landing-question">어느 서버를 플레이하시나요?</div>
+    <div class="server-btn-grid">
+      <div class="server-btn" onclick="selectServer('류트')">
+        <div class="server-btn-name">류트</div>
+        <div class="server-btn-desc">Lute</div>
+        <div id="king-류트" class="server-btn-king"></div>
+      </div>
+      <div class="server-btn" onclick="selectServer('만돌린')">
+        <div class="server-btn-name">만돌린</div>
+        <div class="server-btn-desc">Mandolin</div>
+        <div id="king-만돌린" class="server-btn-king"></div>
+      </div>
+      <div class="server-btn" onclick="selectServer('하프')">
+        <div class="server-btn-name">하프</div>
+        <div class="server-btn-desc">Harp</div>
+        <div id="king-하프" class="server-btn-king"></div>
+      </div>
+      <div class="server-btn" onclick="selectServer('울프')">
+        <div class="server-btn-name">울프</div>
+        <div class="server-btn-desc">Wolf</div>
+        <div id="king-울프" class="server-btn-king"></div>
+      </div>
+    </div>
+    <button class="landing-all-btn" onclick="selectServer('all')">전체 서버 보기</button>
   </div>
-  <button class="btn btn-ghost" style="margin-top:20px;" onclick="selectServer('all')">전체 서버 보기</button>
 </div>
 
 <nav>
@@ -73,7 +993,7 @@
     <button class="nav-btn active" id="nav-feed" onclick="showPage('feed')">📯 실시간 피드</button>
     <button class="nav-btn" id="nav-analysis" onclick="showPage('analysis')">📊 분석</button>
     <button class="nav-btn" id="nav-keywords" onclick="showPage('keywords')">☁️ 키워드</button>
-    <button class="nav-btn" id="nav-party" onclick="showPage('party')">⚔️ 파티 모집</button>
+    <button class="nav-btn" id="nav-party" onclick="showPage('party')">🎮 파티 모집</button>
     <button class="nav-btn" id="nav-user" onclick="showPage('user')">🔍 유저 분석</button>
   </div>
   <div class="nav-right">
@@ -84,73 +1004,188 @@
       <option value="하프">하프</option>
       <option value="울프">울프</option>
     </select>
-    <div class="nav-status"><div class="dot" id="globalDot"></div> <span id="globalStatus">연결 대기중</span></div>
+    <div class="nav-status">
+      <div class="dot" id="globalDot"></div>
+      <span id="globalStatus">연결 중...</span>
+    </div>
   </div>
 </nav>
 
 <div class="page active" id="page-feed">
   <div class="wrap">
-    <div class="page-header"><div class="page-title">실시간 피드</div></div>
-    <div class="feed-controls">
-      <button class="btn btn-primary" onclick="startFeed()">▶ 시작</button>
-      <input class="filter-input" id="filterInput" placeholder="🔍 키워드 필터..." oninput="applyFilter()" />
-      <button class="btn btn-ghost" onclick="document.getElementById('feed').innerHTML=''">비우기</button>
+    <div class="page-header">
+      <div class="page-title">실시간 피드</div>
+      <div class="page-sub">// 거대한 외침의 뿔피리 · 10초마다 자동 갱신</div>
     </div>
-    <div id="feed"></div>
+
+    <div class="feed-controls">
+      <button class="btn btn-primary" id="startBtn" onclick="startFeed()">▶ 시작</button>
+      <button class="btn btn-stop" id="stopBtn" onclick="stopFeed()" style="display:none">■ 중지</button>
+      <button class="btn btn-ghost" onclick="clearFeed()">비우기</button>
+      <input class="filter-input" id="filterInput" placeholder="🔍 키워드 필터..." oninput="applyFilter()" />
+      <div class="feed-meta" id="feedMeta"></div>
+    </div>
+
+    <div id="feed">
+      <div class="empty-state">
+        <div class="empty-icon">📯</div>
+        <div class="empty-title">에린의 목소리를 기다리는 중</div>
+        <div class="empty-sub">▶ 시작 버튼을 누르면<br>실시간 뿔피리가 여기 나타나요</div>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="page" id="page-analysis">
   <div class="wrap">
-    <div class="page-header"><div class="page-title">분석 대시보드</div></div>
-    
-    <div class="section-title">✨ 오늘의 에린 요약 <span id="dailySummaryDate" style="font-size:11px; margin-left:8px; color:var(--text3);"></span></div>
-    <div id="dailySummaryGrid" class="daily-summary-grid"></div>
+    <div class="page-header">
+      <div class="page-title">분석 대시보드</div>
+      <div class="page-sub">// 뿔피리 활동량 · 누적 데이터 기반</div>
+    </div>
 
-    <div class="section-title">🏆 명예의 전당 <span style="font-size:11px; margin-left:8px; color:var(--text3);">(역대 거뿔 왕)</span></div>
-    <div class="chart-section" id="hallOfFameList" style="padding:0; overflow:hidden;"></div>
+    <div class="analysis-controls">
+      <select id="daysFilter" onchange="loadAnalysis()">
+        <option value="1">최근 1일</option>
+        <option value="3">최근 3일</option>
+        <option value="7">최근 7일</option>
+      </select>
+      <button class="btn btn-primary" onclick="loadAnalysis()">↻ 새로고침</button>
+      <span id="analysisStatus" style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px;"></span>
+    </div>
 
-    <div class="summary-grid" style="margin-top:24px;">
-      <div class="card"><div style="font-size:13px; color:var(--text2);">총 누적</div><div style="font-size:32px; font-weight:900;" id="totalMsg">—</div></div>
-      <div class="card"><div style="font-size:13px; color:var(--text2);">오늘</div><div style="font-size:32px; font-weight:900;" id="todayMsg">—</div></div>
+    <div class="section-title" style="margin-top: 20px;">
+      ✨ 오늘의 에린 요약 <span id="dailySummaryDate" style="font-size:11px; font-weight:normal; margin-left:8px; color:var(--text3);"></span>
+    </div>
+    <div class="daily-summary-grid" id="dailySummaryGrid">
+      <div class="placeholder"><div class="spinner"></div></div>
+    </div>
+<div class="section-title" style="margin-top: 32px;">
+      🏆 명예의 전당 <span style="font-size:11px; font-weight:normal; margin-left:8px; color:var(--text3);">(역대 누적 랭킹)</span>
+    </div>
+    <div class="chart-section" style="padding: 0;">
+      <div id="hallOfFameList" style="display: flex; flex-direction: column;">
+        <div style="padding:20px; text-align:center; color:var(--text3); font-size:13px;">명예의 전당을 불러오는 중...</div>
+      </div>
+    </div>
+    <div class="summary-grid">
+      <div class="card c-gold">
+        <div class="card-label">총 누적</div>
+        <div class="card-num" id="totalMsg">—</div>
+        <div class="card-desc">전체 뿔피리</div>
+      </div>
+      <div class="card c-blue">
+        <div class="card-label">오늘</div>
+        <div class="card-num" id="todayMsg">—</div>
+        <div class="card-desc">24시간 이내</div>
+      </div>
+      <div class="card c-teal">
+        <div class="card-label">피크 시간대</div>
+        <div class="card-num" id="peakHour">—</div>
+        <div class="card-desc" id="peakCount">—</div>
+      </div>
+      <div class="card c-purple">
+        <div class="card-label">서버별 현황</div>
+        <div class="server-bars" id="serverBars">
+          <div style="color:var(--text3);font-size:12px;">로딩 중...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="section-title">시간대별 활동량 (KST)</div>
+      <div class="chart-wrap" id="hourWrap">
+        <div class="placeholder"><div class="spinner"></div><span>로딩 중...</span></div>
+      </div>
+      <div id="peakBadge"></div>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-section">
+        <div class="section-title">메시지 유형 분포</div>
+        <div class="chart-wrap-sm" id="donutWrap">
+          <div class="placeholder"><div class="spinner"></div></div>
+        </div>
+        <div class="legend" id="donutLegend"></div>
+      </div>
+      <div class="chart-section">
+        <div class="section-title">시간대별 추이 (라인)</div>
+        <div class="chart-wrap-sm" id="lineWrap">
+          <div class="placeholder"><div class="spinner"></div></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="page" id="page-keywords">
   <div class="wrap">
-    <div class="page-header"><div class="page-title">키워드 트렌드</div></div>
-    <div class="feed-controls" style="background:var(--surface2); padding:8px; border-radius:12px; margin-bottom:20px; display:flex; gap:4px;">
-      <button class="nav-btn active" onclick="setKeywordTab(this, 'all')">전체</button>
-      <button class="nav-btn" onclick="setKeywordTab(this, 'party')">⚔️ 사냥</button>
-      <button class="nav-btn" onclick="setKeywordTab(this, 'trade')">💰 거래</button>
-      <button class="nav-btn" onclick="setKeywordTab(this, 'guild')">🏰 길드</button>
-      <button class="nav-btn" onclick="setKeywordTab(this, 'etc')">💬 일반</button>
+    <div class="page-header">
+      <div class="page-title">키워드 트렌드</div>
+      <div class="page-sub">// 뿔피리 메시지 단어 빈도 분석</div>
     </div>
-    
-    <div id="keywordMainView">
-      <div class="chart-section"><div class="section-title">워드클라우드</div><canvas id="wordcloud-canvas" style="width:100%; height:300px;"></canvas></div>
-      <div class="chart-section"><div class="section-title">TOP 20 키워드</div><div class="keyword-list" id="keyword-list"></div></div>
+
+    <div class="keyword-controls">
+      <select id="kwDaysFilter" onchange="loadKeywords()">
+        <option value="1">최근 1일</option>
+        <option value="3">최근 3일</option>
+        <option value="7">최근 7일</option>
+      </select>
+      <button class="btn btn-primary" onclick="loadKeywords()">↻ 새로고침</button>
+      <span class="keyword-status" id="kwStatus"></span>
     </div>
-    
-    <div id="guildListView" style="display:none;">
-      <div class="section-title">🏰 현재 모집 중인 길드 목록</div>
-      <div id="guildGrid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;"></div>
+
+    <div class="wordcloud-section">
+      <div class="section-title">워드클라우드</div>
+      <canvas id="wordcloud-canvas"></canvas>
+    </div>
+
+    <div class="chart-section">
+      <div class="section-title">TOP 20 키워드</div>
+      <div class="keyword-list" id="keyword-list">
+        <div class="placeholder" style="height:200px"><div class="spinner"></div><span>로딩 중...</span></div>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="page" id="page-party">
-  <div class="wrap"><div class="page-header"><div class="page-title">파티 모집 현황</div></div><div id="partyGrid" class="party-grid"></div></div>
+  <div class="wrap">
+    <div class="page-header">
+      <div class="page-title">파티 모집 현황</div>
+      <div class="page-sub">// 뿔피리 파티 모집 메시지 분석</div>
+    </div>
+    <div class="keyword-controls">
+      <select id="partyDaysFilter" onchange="loadParty()">
+        <option value="1">최근 1일</option>
+        <option value="3">최근 3일</option>
+        <option value="7">최근 7일</option>
+      </select>
+      <button class="btn btn-primary" onclick="loadParty()">↻ 새로고침</button>
+      <span class="keyword-status" id="partyStatus"></span>
+    </div>
+    <div id="partyTotalBadge"></div>
+    <div class="party-grid" id="partyGrid">
+      <div class="placeholder" style="height:200px;grid-column:1/-1"><div class="spinner"></div><span>로딩 중...</span></div>
+    </div>
+    <div class="chart-section">
+      <div class="section-title">모집 인원 패턴</div>
+      <div class="member-chart-wrap"><canvas id="memberChart"></canvas></div>
+    </div>
+  </div>
 </div>
 
 <div class="page" id="page-user">
   <div class="wrap">
-    <div class="page-header"><div class="page-title">유저 분석</div></div>
-    <div class="feed-controls">
-      <input class="filter-input" id="userSearchInput" placeholder="닉네임 입력..." onkeydown="if(event.key==='Enter') searchUser()" />
+    <div class="page-header">
+      <div class="page-title">유저 분석</div>
+      <div class="page-sub">// 닉네임으로 거뿔 패턴 분석</div>
+    </div>
+
+    <div class="search-box">
+      <input class="search-input" id="userSearchInput" placeholder="캐릭터 닉네임 입력..." onkeydown="if(event.key==='Enter') searchUser()" />
       <button class="btn btn-primary" onclick="searchUser()">🔍 검색</button>
     </div>
+
     <div id="userResult"></div>
   </div>
 </div>
@@ -158,152 +1193,708 @@
 <script>
   const API = 'https://erin-server-production.up.railway.app';
   let feedInterval = null;
-  let currentKeywordTab = 'all';
+  let seenKeys = new Set();
+  let isScrolledDown = false;
+  let newMsgCount = 0;
+  let hourChart = null, donutChart = null, lineChart = null;
 
-  function selectServer(server) { document.getElementById('globalServer').value = server; document.getElementById('landingOverlay').classList.add('hidden'); startFeed(); }
-  function showPage(name) { 
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`page-${name}`).classList.add('active'); 
-    document.getElementById(`nav-${name}`).classList.add('active');
-    if (name === 'analysis') loadAnalysis(); 
-    if (name === 'keywords') loadKeywords(); 
-    if (name === 'party') loadParty();
-  }
-  function onServerChange() { loadAnalysis(); loadKeywords(); loadParty(); }
+  Chart.defaults.color = '#8891aa';
+  Chart.defaults.font = { family: 'JetBrains Mono, Noto Sans KR, sans-serif', size: 11 };
 
-  // ── 피드 로직 ──
-  function startFeed() { if(feedInterval) clearInterval(feedInterval); fetchFeed(); feedInterval = setInterval(fetchFeed, 10000); }
-  async function fetchFeed() {
-    const s = document.getElementById('globalServer').value;
+  async function loadDailySummary() {
+    const server = getServer();
+    const grid = document.getElementById('dailySummaryGrid');
     try {
-      const res = await fetch(`${API}/api/feed?server=${s}`);
+      const res = await fetch(`${API}/api/stats/daily?server=${server}`);
       const data = await res.json();
-      document.getElementById('feed').innerHTML = data.items.map(item => `
-        <div class="feed-item">
-          <div class="avatar">🧝</div>
-          <div class="feed-body">
-            <div style="margin-bottom:4px;"><span class="char-name">${item.character_name}</span> <span class="badge badge-server">${item.server_name}</span></div>
-            <div style="font-size:14px; line-height:1.6;">${item.message}</div>
-            <div style="font-size:10px; color:var(--text3); margin-top:4px;">${new Date(item.date_send).toLocaleTimeString()}</div>
-          </div>
-        </div>`).join('');
-      document.getElementById('globalDot').classList.add('live');
-      document.getElementById('globalStatus').textContent = '연결됨';
-    } catch(e) {}
-  }
 
-  // ── 분석/명예의전당 ──
-  async function loadAnalysis() {
-    const s = document.getElementById('globalServer').value;
-    try {
-      const sumRes = await fetch(`${API}/api/stats/summary`);
-      const sumData = await sumRes.json();
-      document.getElementById('totalMsg').textContent = sumData.total.toLocaleString();
-      document.getElementById('todayMsg').textContent = sumData.today.toLocaleString();
-
-      const dailyRes = await fetch(`${API}/api/stats/daily?server=${s}`);
-      const dailyData = await dailyRes.json();
-      const grid = document.getElementById('dailySummaryGrid');
-      if (dailyData.length > 0) {
-        document.getElementById('dailySummaryDate').textContent = `(${dailyData[0].target_date.split('T')[0]})`;
-        grid.innerHTML = dailyData.slice(0, 4).map(d => `
-          <div class="daily-card">
-            <div style="font-weight:900; color:var(--purple); margin-bottom:10px; font-size:12px;">${d.server_name} 요약</div>
-            <div style="font-size:13px; margin-bottom:5px;">🔥 피크: ${d.peak_hour}시</div>
-            <div style="font-size:13px; font-weight:700; color:var(--gold);">👑 왕: ${d.horn_king_name} (${d.horn_king_count}회)</div>
-          </div>`).join('');
+      if (!data || data.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text3); font-size:13px; padding:20px; background:var(--surface); border-radius:12px; border:1px solid var(--border);">아직 생성된 요약이 없어요. (매일 자정에 전날 기록이 생성됩니다)</div>';
+        document.getElementById('dailySummaryDate').textContent = '';
+        return;
       }
 
-      const hofRes = await fetch(`${API}/api/stats/hall-of-fame?server=${s}`);
-      const hofData = await hofRes.json();
-      document.getElementById('hallOfFameList').innerHTML = hofData.map((u, i) => `
-        <div style="display:flex; justify-content:space-between; padding:16px; border-bottom:1px solid var(--border);">
-          <span><b style="color:var(--gold); margin-right:8px;">${i+1}위</b> <b>${u.name}</b> (${u.server_name})</span>
-          <span style="color:var(--gold); font-weight:900;">왕좌 ${u.win_count}회</span>
-        </div>`).join('');
-    } catch(e) {}
-  }
+      // 가장 최근 날짜의 데이터만 필터링
+      const latestDate = data[0].target_date.split('T')[0];
+      document.getElementById('dailySummaryDate').textContent = `(${latestDate} 기준)`;
 
-  // ── 키워드/길드 탭 ──
-  function setKeywordTab(btn, tab) { 
-    btn.parentElement.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); 
-    btn.classList.add('active'); 
-    currentKeywordTab = tab; loadKeywords(); 
-  }
-  async function loadKeywords() {
-    const s = document.getElementById('globalServer').value;
-    const mainView = document.getElementById('keywordMainView');
-    const guildView = document.getElementById('guildListView');
-    if (currentKeywordTab === 'guild') {
-      mainView.style.display = 'none'; guildView.style.display = 'block';
-      const res = await fetch(`${API}/api/stats/guilds?server=${s}`);
-      const data = await res.json();
-      document.getElementById('guildGrid').innerHTML = data.map(g => `
-        <div class="daily-card" style="border-left: 4px solid var(--purple);">
-          <div style="font-weight:900; color:var(--purple); margin-bottom:8px; font-size:15px;">🏰 길드원 모집</div>
-          <div style="font-size:13px; line-height:1.6; margin-bottom:12px; height:40px; overflow:hidden;">${g.message}</div>
-          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text3);">
-            <span>👤 ${g.character_name}</span> <span>${new Date(g.date_send).toLocaleTimeString()}</span>
+      const latestData = data.filter(d => d.target_date.startsWith(latestDate));
+
+      grid.innerHTML = latestData.map(d => {
+        // 이름 마스킹 처리 (보안 및 프라이버시)
+        const maskedName = d.horn_king_name.length <= 2 ? d.horn_king_name[0] + 'X' : d.horn_king_name.slice(0, 2) + 'X'.repeat(d.horn_king_name.length - 2);
+        
+        return `
+        <div class="daily-card">
+          <div class="daily-card-header">
+            <span class="badge badge-server" style="font-size:12px; padding:3px 8px;">${d.server_name}</span>
+            <span style="font-size:12px; color:var(--text3); font-family:'JetBrains Mono', monospace;">어제 총 ${d.total_messages.toLocaleString()}건</span>
           </div>
-        </div>`).join('');
-    } else {
-      mainView.style.display = 'block'; guildView.style.display = 'none';
-      const res = await fetch(`${API}/api/stats/keywords?server=${s}&category=${currentKeywordTab}`);
-      const data = await res.json();
-      document.getElementById('keyword-list').innerHTML = data.keywords.map((kw, i) => `
-        <div class="keyword-row">
-          <span style="width:24px; font-weight:700; color:var(--text3);">${i+1}</span>
-          <span class="keyword-word">${kw.word}</span>
-          <span style="color:var(--gold); font-weight:900;">${kw.count}회</span>
-        </div>`).join('');
+          <div class="daily-stat-row">
+            <span class="daily-stat-label">🔥 가장 핫한 시간</span>
+            <span class="daily-stat-val">${d.peak_hour}시</span>
+          </div>
+          <div class="daily-stat-row">
+            <span class="daily-stat-label">⚔️ 인기 던전</span>
+            <span class="daily-stat-val">${d.popular_dungeon}</span>
+          </div>
+          <div class="daily-stat-row">
+            <span class="daily-stat-label">👑 거뿔 왕</span>
+            <span class="daily-stat-val highlight">${maskedName} (${d.horn_king_count}회)</span>
+          </div>
+        </div>
+      `}).join('');
+    } catch (e) {
+      grid.innerHTML = '<div style="grid-column:1/-1; color:var(--red); font-size:13px;">요약 데이터를 불러오는 중 오류가 발생했습니다.</div>';
     }
   }
 
-  // ── 파티 모집 ──
-  async function loadParty() {
-    const s = document.getElementById('globalServer').value;
-    const res = await fetch(`${API}/api/stats/party?server=${s}`);
-    const data = await res.json();
-    document.getElementById('partyGrid').innerHTML = data.dungeons.map(d => `
-      <div class="daily-card" style="border-top: 3px solid var(--${d.color});">
-        <div style="font-size:16px; font-weight:900; margin-bottom:10px;">${d.name}</div>
-        <div style="font-size:32px; font-weight:900; color:var(--blue); margin-bottom:12px;">${d.count}<span style="font-size:14px; color:var(--text3); font-weight:400; margin-left:4px;">건</span></div>
-        ${d.recent.map(r => `<div style="font-size:11px; color:var(--text2); background:var(--surface2); padding:4px 8px; border-radius:4px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📯 ${r.message}</div>`).join('')}
+  // ── 거뿔 왕 로드 ──
+  async function loadHornKings() {
+    try {
+      const res = await fetch(`${API}/api/stats/horn-king`);
+      const data = await res.json();
+      const servers = ['류트', '만돌린', '하프', '울프'];
+      servers.forEach(server => {
+        const el = document.getElementById(`king-${server}`);
+        if (!el) return;
+        if (data[server]) {
+          el.innerHTML = `<div class="server-btn-king-label">👑 오늘의 거뿔 왕</div>${data[server].masked}님 (${data[server].count}회)`;
+        }
+      });
+    } catch (e) {
+      // 거뿔 왕 로드 실패 시 조용히 무시
+    }
+  }
+
+  // ── 서버 선택 랜딩 ──
+  function selectServer(server) {
+    document.getElementById('globalServer').value = server;
+    document.getElementById('landingOverlay').classList.add('hidden');
+    // 피드 자동 시작
+    startFeed();
+  }
+
+  // ── 페이지 전환 ──
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`page-${name}`).classList.add('active');
+    document.getElementById(`nav-${name}`).classList.add('active');
+    if (name === 'analysis') loadAnalysis();
+    if (name === 'keywords') loadKeywords();
+    if (name === 'party') loadParty();
+  }
+
+  // ── 서버 변경 ──
+  function onServerChange() {
+    if (feedInterval) {
+      clearInterval(feedInterval);
+      seenKeys = new Set();
+      clearFeed();
+      startFeed();
+    }
+    if (document.getElementById('page-analysis').classList.contains('active')) {
+      loadAnalysis();
+    }
+    if (document.getElementById('page-keywords').classList.contains('active')) {
+      loadKeywords();
+    }
+    if (document.getElementById('page-party').classList.contains('active')) {
+      loadParty();
+    }
+  }
+
+  function getServer() { return document.getElementById('globalServer').value; }
+
+  // ── 전역 상태 ──
+  function setGlobalStatus(type, text) {
+    const dot = document.getElementById('globalDot');
+    const txt = document.getElementById('globalStatus');
+    dot.className = 'dot' + (type === 'live' ? ' live' : type === 'error' ? ' error' : '');
+    txt.textContent = text;
+  }
+
+  // ════════════════════════════════
+  //  피드
+  // ════════════════════════════════
+
+  function classify(msg) {
+    if (/파티|구함|모집|인원|\/\d|[0-9]\/[0-9]/.test(msg)) return 'party';
+    if (/팝니다|팝|판매|삽니다|구매|구입|얼마|골드|가격/.test(msg)) return 'trade';
+    return null;
+  }
+
+  function getAvatar(name) {
+    const emojis = ['🧝','🧙','⚔️','🏹','🎵','🌟','🦊','🐺','🌙','✨'];
+    return emojis[name.charCodeAt(0) % emojis.length];
+  }
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  }
+
+  function makeKey(item) { return `${item.server_name}_${item.character_name}_${item.date_send}_${item.message}`; }
+
+  function renderFeedItem(item, isNew = false) {
+    const type = classify(item.message);
+    const div = document.createElement('div');
+    div.className = 'feed-item' + (isNew ? ' is-new' : '');
+    div.dataset.msg = item.message.toLowerCase();
+    div.innerHTML = `
+      <div class="avatar">${getAvatar(item.character_name)}</div>
+      <div class="feed-body">
+        <div class="feed-header">
+          <span class="char-name">${item.character_name}</span>
+          <span class="badge badge-server">${item.server_name || ''}</span>
+          ${type === 'party' ? '<span class="badge badge-party">파티</span>' : ''}
+          ${type === 'trade' ? '<span class="badge badge-trade">거래</span>' : ''}
+          ${isNew ? '<span class="badge badge-new">NEW</span>' : ''}
+        </div>
+        <div class="feed-msg">${item.message}</div>
+        <div class="feed-time">${formatTime(item.date_send)}</div>
+      </div>`;
+    return div;
+  }
+
+  async function fetchFeed() {
+    const server = getServer();
+    const params = new URLSearchParams({ limit: 100 });
+    if (server !== 'all') params.set('server', server);
+    params.set('_t', Date.now()); // 캐시 무력화
+
+    try {
+      const res = await fetch(`${API}/api/feed?${params}`);
+      const data = await res.json();
+      const items = data.items || [];
+      const feed = document.getElementById('feed');
+
+      if (seenKeys.size === 0 && items.length > 0) {
+        feed.innerHTML = '';
+        items.forEach(item => {
+          seenKeys.add(makeKey(item));
+          feed.appendChild(renderFeedItem(item, false));
+        });
+      } else {
+        const newItems = items.filter(item => !seenKeys.has(makeKey(item)));
+        if (newItems.length > 0) {
+          const empty = feed.querySelector('.empty-state');
+          if (empty) empty.remove();
+
+          const div = document.createElement('div');
+          div.className = 'divider';
+          div.textContent = `— ${formatTime(new Date().toISOString())} —`;
+          feed.insertBefore(div, feed.firstChild);
+
+          newItems.forEach(item => {
+            seenKeys.add(makeKey(item));
+            feed.insertBefore(renderFeedItem(item, true), feed.firstChild);
+          });
+        }
+      }
+
+      // 최대 300개
+      const all = feed.querySelectorAll('.feed-item');
+      if (all.length > 300) for (let i = 300; i < all.length; i++) all[i].remove();
+
+      document.getElementById('feedMeta').innerHTML = `총 <span>${feed.querySelectorAll('.feed-item').length}</span>개`;
+      applyFilter();
+      const nowTime = new Date().toLocaleTimeString('ko-KR');
+      setGlobalStatus('live', `연결됨 (${nowTime} 갱신)`);
+
+    } catch (e) {
+      setGlobalStatus('error', '서버 오류');
+    }
+  }
+
+  function startFeed() {
+    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('stopBtn').style.display = '';
+    document.getElementById('feed').innerHTML = '<div class="loading-row"><div class="spinner"></div> 불러오는 중...</div>';
+    fetchFeed();
+    feedInterval = setInterval(fetchFeed, 10000);
+  }
+
+  function stopFeed() {
+    clearInterval(feedInterval);
+    feedInterval = null;
+    document.getElementById('startBtn').style.display = '';
+    document.getElementById('stopBtn').style.display = 'none';
+    setGlobalStatus('idle', '중지됨');
+  }
+
+  function clearFeed() {
+    seenKeys = new Set();
+    document.getElementById('feed').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📯</div>
+        <div class="empty-title">피드가 비워졌어요</div>
+        <div class="empty-sub">▶ 시작 버튼을 누르면 다시 나타나요</div>
+      </div>`;
+    document.getElementById('feedMeta').innerHTML = '';
+  }
+
+  function applyFilter() {
+    const kw = document.getElementById('filterInput').value.toLowerCase().trim();
+    document.querySelectorAll('.feed-item').forEach(el => {
+      el.style.display = (!kw || el.dataset.msg.includes(kw)) ? '' : 'none';
+    });
+  }
+
+  // ════════════════════════════════
+  //  분석
+  // ════════════════════════════════
+
+  async function loadAnalysis() {
+    const server = getServer();
+    const days = document.getElementById('daysFilter').value;
+    const qs = `server=${server}&days=${days}`;
+    
+    // 🔥 요약 데이터도 함께 호출
+    loadDailySummary(); 
+    loadHallOfFame(); //
+
+    document.getElementById('analysisStatus').textContent = '로딩 중...';
+
+    try {
+      const [summary, hourly, category] = await Promise.all([
+        fetch(`${API}/api/stats/summary`).then(r => r.json()),
+        fetch(`${API}/api/stats/hourly?${qs}`).then(r => r.json()),
+        fetch(`${API}/api/stats/category?${qs}`).then(r => r.json()),
+      ]);
+
+      renderSummary(summary);
+      renderHourly(hourly);
+      renderDonut(category);
+      renderLine(hourly);
+
+      document.getElementById('analysisStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
+      setGlobalStatus('live', '연결됨');
+    } catch (e) {
+      document.getElementById('analysisStatus').textContent = '서버 연결 실패';
+      setGlobalStatus('error', '서버 오류');
+    }
+  }
+
+  async function loadHallOfFame() {
+    const server = getServer();
+    const list = document.getElementById('hallOfFameList');
+    try {
+      const res = await fetch(`${API}/api/stats/hall-of-fame?server=${server}`);
+      const data = await res.json();
+
+      if (!data || data.length === 0) {
+        list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text3); font-size:13px;">아직 전당에 오른 유저가 없습니다.</div>';
+        return;
+      }
+
+      const medals = ['🥇', '🥈', '🥉'];
+      list.innerHTML = data.map((user, index) => {
+        const medal = index < 3 ? medals[index] : `<span style="display:inline-block; width:20px; text-align:center; color:var(--text3); font-size:12px;">${index + 1}</span>`;
+        const maskedName = user.name.length <= 2 ? user.name[0] + 'X' : user.name.slice(0, 2) + 'X'.repeat(user.name.length - 2);
+        
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:18px;">${medal}</span>
+              <span style="font-weight:700; font-size:15px; color:var(--text);">${maskedName}</span>
+              <span class="badge badge-server" style="font-size:10px;">${user.server_name}</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="color:var(--gold); font-weight:700; font-size:14px; font-family:'JetBrains Mono', monospace;">왕좌 ${user.win_count}회</div>
+              <div style="color:var(--text3); font-size:11px; font-family:'JetBrains Mono', monospace; margin-top:2px;">총 ${parseInt(user.total_horns).toLocaleString()}번 외침</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // 마지막 줄은 테두리 제거
+      if(list.lastElementChild) list.lastElementChild.style.borderBottom = 'none';
+
+    } catch (e) {
+      list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--red); font-size:13px;">명예의 전당을 불러올 수 없습니다.</div>';
+    }
+  }
+
+  function renderSummary(data) {
+    document.getElementById('totalMsg').textContent = (data.total || 0).toLocaleString();
+    document.getElementById('todayMsg').textContent = (data.today || 0).toLocaleString();
+    const servers = data.servers || {};
+    const max = Math.max(...Object.values(servers), 1);
+    document.getElementById('serverBars').innerHTML = Object.entries(servers).map(([name, count]) => `
+      <div class="server-bar-row">
+        <span class="server-bar-label">${name}</span>
+        <div class="server-bar-track"><div class="server-bar-fill" style="width:${Math.round(count/max*100)}%"></div></div>
+        <span class="server-bar-count">${count.toLocaleString()}</span>
       </div>`).join('');
   }
 
-  // ── 유저 AI 분석 ──
+  function renderHourly(data) {
+    const hourly = data.hourly || new Array(24).fill(0);
+    const peak = hourly.indexOf(Math.max(...hourly));
+    const peakVal = Math.max(...hourly);
+    document.getElementById('peakHour').textContent = `${peak}시`;
+    document.getElementById('peakCount').textContent = `${peakVal}건`;
+    document.getElementById('peakBadge').innerHTML = peakVal > 0
+      ? `<div class="peak-badge">🔥 피크: ${peak}시 — ${peakVal}건</div>` : '';
+
+    const wrap = document.getElementById('hourWrap');
+    wrap.innerHTML = '<canvas id="hourChart"></canvas>';
+    if (hourChart) hourChart.destroy();
+    hourChart = new Chart(document.getElementById('hourChart'), {
+      type: 'bar',
+      data: {
+        labels: Array.from({length:24}, (_,i) => `${i}시`),
+        datasets: [{
+          data: hourly,
+          backgroundColor: hourly.map((_,i) => i===peak ? 'rgba(232,201,106,0.85)' : 'rgba(91,141,238,0.45)'),
+          borderColor: hourly.map((_,i) => i===peak ? '#e8c96a' : '#5b8dee'),
+          borderWidth: 1, borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}건` } } },
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 12, color: '#9299b0' } },
+          y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#9299b0' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  function renderDonut(data) {
+    const values = [data.party||0, data.trade||0, data.etc||0];
+    const labels = ['파티 모집','거래','기타'];
+    const colors = ['#5b8dee','#e8c96a','#4d5470'];
+    const total = values.reduce((a,b)=>a+b,0);
+    const wrap = document.getElementById('donutWrap');
+    wrap.innerHTML = '<canvas id="donutChart" style="max-height:180px"></canvas>';
+    if (donutChart) donutChart.destroy();
+    donutChart = new Chart(document.getElementById('donutChart'), {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#f4f6f9', borderWidth: 3, hoverOffset: 6 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '68%',
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw}건 (${total>0?Math.round(c.raw/total*100):0}%)` } } }
+      }
+    });
+    document.getElementById('donutLegend').innerHTML = labels.map((l,i) => `
+      <div class="legend-row">
+        <div class="legend-left"><div class="legend-dot" style="background:${colors[i]}"></div><span>${l}</span></div>
+        <span class="legend-val">${values[i]}건 · ${total>0?Math.round(values[i]/total*100):0}%</span>
+      </div>`).join('');
+  }
+
+  function renderLine(data) {
+    const hourly = data.hourly || [];
+    const wrap = document.getElementById('lineWrap');
+    wrap.innerHTML = '<canvas id="lineChart"></canvas>';
+    if (lineChart) lineChart.destroy();
+    lineChart = new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: {
+        labels: Array.from({length:24}, (_,i) => `${i}시`),
+        datasets: [{
+          data: hourly,
+          borderColor: '#4ecdc4', backgroundColor: 'rgba(78,205,196,0.07)',
+          borderWidth: 2, pointRadius: 2, fill: true, tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}건` } } },
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 8, color: '#9299b0' } },
+          y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#9299b0' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // ════════════════════════════════
+  //  유저 분석
+  // ════════════════════════════════
+
   async function searchUser() {
-    const name = document.getElementById('userSearchInput').value;
-    if(!name) return;
-    const res = await fetch(`${API}/api/user/${encodeURIComponent(name)}`);
-    const data = await res.json();
+    const name = document.getElementById('userSearchInput').value.trim();
+    if (!name) return;
+
     const result = document.getElementById('userResult');
-    if (!data.found) { result.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text3);">데이터가 없습니다.</div>'; return; }
-    result.innerHTML = `
-      <div class="chart-section" style="margin-top:20px; padding:24px;">
-        <div style="font-size:26px; font-weight:900; color:var(--text); margin-bottom:4px;">${data.name}</div>
-        <div style="font-size:12px; color:var(--text3); margin-bottom:24px; font-family:'JetBrains Mono';">Total: ${data.total} Horns | Peak: ${data.peakHour}시</div>
-        <button class="btn btn-primary" style="width:100%; padding:14px; font-size:15px;" onclick="analyzeUser('${data.name}')">✨ AI 유저 성향 분석</button>
-        <div id="aiArea" style="margin-top:20px;"></div>
-      </div>`;
-  }
-  async function analyzeUser(name) {
-    document.getElementById('aiArea').innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner"></div><div style="margin-top:10px; color:var(--text3);">에린의 심연을 분석중...</div></div>';
-    const res = await fetch(`${API}/api/user/${encodeURIComponent(name)}/analyze`);
-    const data = await res.json();
-    const a = data.analysis;
-    document.getElementById('aiArea').innerHTML = `
-      <div style="background:linear-gradient(135deg, rgba(184,134,11,0.08) 0%, rgba(124,58,237,0.08) 100%); padding:24px; border-radius:14px; border:1px solid rgba(184,134,11,0.2);">
-        <div style="font-weight:900; color:var(--gold); font-size:20px; margin-bottom:12px;">「 ${a.type} 」</div>
-        <div style="font-size:14px; line-height:1.8; color:var(--text2); margin-bottom:16px;">${a.description}</div>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          ${a.traits.map(t => `<span style="background:rgba(184,134,11,0.1); color:var(--gold); padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600;"># ${t}</span>`).join('')}
+    result.innerHTML = '<div class="loading-row"><div class="spinner"></div> 검색 중...</div>';
+
+    try {
+      const res = await fetch(`${API}/api/user/${encodeURIComponent(name)}`);
+      const data = await res.json();
+
+      if (!data.found) {
+        result.innerHTML = `<div class="user-card"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">${name} 님의 거뿔 기록이 없어요</div><div class="empty-sub">수집된 기간 내에 거뿔을 불지 않았거나 닉네임이 다를 수 있어요</div></div></div>`;
+        return;
+      }
+
+      const serverList = Object.entries(data.servers).map(([s, c]) => `${s}(${c})`).join(', ');
+      const catList = [
+        data.categories.party ? `파티 ${data.categories.party}` : '',
+        data.categories.trade ? `거래 ${data.categories.trade}` : '',
+        data.categories.guild ? `길드 ${data.categories.guild}` : '',
+        data.categories.etc ? `일반 ${data.categories.etc}` : '',
+      ].filter(Boolean).join(' · ');
+
+      result.innerHTML = `
+        <div class="user-card">
+          <div class="user-name">${data.name}</div>
+          <div class="user-sub">${serverList} · ${catList}</div>
+          <div class="user-stats">
+            <div class="user-stat">
+              <div class="user-stat-num">${data.total}</div>
+              <div class="user-stat-label">총 거뿔 수</div>
+            </div>
+            <div class="user-stat">
+              <div class="user-stat-num">${data.peakHour}시</div>
+              <div class="user-stat-label">주 활동 시간</div>
+            </div>
+            <div class="user-stat">
+              <div class="user-stat-num">${Object.keys(data.servers).length}개</div>
+              <div class="user-stat-label">활동 서버</div>
+            </div>
+          </div>
+          <div class="section-title">최근 거뿔</div>
+          <div class="recent-messages">
+            ${data.recentMessages.map(m => `<div class="recent-msg-item">📯 ${m}</div>`).join('')}
+          </div>
         </div>
-        <div style="margin-top:16px; font-size:12px; color:var(--text3);">⏰ 활동: ${a.activeTime} | 🎯 주요활동: ${a.mainActivity}</div>
-      </div>`;
+        <div id="aiAnalysisArea">
+          <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;" onclick="analyzeUser('${data.name}')">✨ AI 거뿔 패턴 분석하기</button>
+        </div>
+      `;
+    } catch (e) {
+      result.innerHTML = '<div class="user-card"><div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">오류가 발생했어요</div></div></div>';
+    }
   }
+
+  async function analyzeUser(name) {
+    const area = document.getElementById('aiAnalysisArea');
+    area.innerHTML = '<div class="loading-row"><div class="spinner"></div> AI가 분석 중... (5~10초)</div>';
+
+    try {
+      const res = await fetch(`${API}/api/user/${encodeURIComponent(name)}/analyze`);
+      const data = await res.json();
+
+      if (!data.found || !data.analysis) {
+        area.innerHTML = '<div class="ai-card"><div class="ai-type">분석 실패</div><div class="ai-desc">데이터가 부족하거나 오류가 발생했어요</div></div>';
+        return;
+      }
+
+      const a = data.analysis;
+      area.innerHTML = `
+        <div class="ai-card">
+          <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:8px;">✨ AI 분석 결과</div>
+          <div class="ai-type">「 ${a.type} 」</div>
+          <div class="ai-desc">${a.description}</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">주요 특징</div>
+          <div class="ai-traits">
+            ${(a.traits || []).map(t => `<span class="ai-trait">${t}</span>`).join('')}
+          </div>
+          ${a.activeTime ? `<div style="font-size:12px;color:var(--text3);margin-top:12px;">⏰ ${a.activeTime}</div>` : ''}
+          ${a.mainActivity ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">🎯 ${a.mainActivity}</div>` : ''}
+        </div>
+      `;
+    } catch (e) {
+      area.innerHTML = '<div class="ai-card"><div class="ai-type">분석 실패</div><div class="ai-desc">오류가 발생했어요</div></div>';
+    }
+  }
+
+  // ════════════════════════════════
+  //  파티 모집
+  // ════════════════════════════════
+  let memberChart = null;
+  const DUNGEON_COLOR = { 'blue':'d-bri', 'red':'d-crom', 'teal':'d-glen', 'purple':'d-purple', 'etc':'d-etc' };
+
+  async function loadParty() {
+    const server = getServer();
+    const days = document.getElementById('partyDaysFilter').value;
+    document.getElementById('partyStatus').textContent = '로딩 중...';
+    try {
+      const res = await fetch(`${API}/api/stats/party?server=${server}&days=${days}`);
+      const data = await res.json();
+      renderParty(data);
+      document.getElementById('partyStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
+      setGlobalStatus('live','연결됨');
+    } catch(e) {
+      document.getElementById('partyStatus').textContent = '서버 연결 실패';
+      setGlobalStatus('error','서버 오류');
+    }
+  }
+
+  function renderParty(data) {
+    document.getElementById('partyTotalBadge').innerHTML =
+      `<div class="party-total-badge">🎮 총 파티 모집 메시지 <strong>${data.total}건</strong></div>`;
+
+    const grid = document.getElementById('partyGrid');
+    grid.innerHTML = (data.dungeons || []).map(d => {
+      const cls = DUNGEON_COLOR[d.color] || 'd-etc';
+      const recentHtml = d.recent.slice(0,3).map(r =>
+        `<div class="dungeon-recent-item">📯 ${r.message}</div>`
+      ).join('');
+      return `
+        <div class="dungeon-card ${cls}">
+          <div class="dungeon-name">${d.name}</div>
+          <div class="dungeon-count">${d.count}<span style="font-size:14px;font-weight:400;color:var(--text3);margin-left:4px;">건</span></div>
+          <div class="dungeon-recent">${recentHtml || '<div style="font-size:11px;color:var(--text3);">최근 모집 없음</div>'}</div>
+        </div>`;
+    }).join('');
+
+    renderMemberChart(data.memberPatterns || {});
+  }
+
+  function renderMemberChart(patterns) {
+    const labels = Object.keys(patterns);
+    const values = Object.values(patterns);
+    const el = document.getElementById('memberChart');
+    if (memberChart) memberChart.destroy();
+    memberChart = new Chart(el, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: ['#5b8dee','#4ecdc4','#a78bfa','#e8c96a','#f87171','#34d399','#fb923c','#e879f9'],
+          borderRadius: 6,
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw}건`}} },
+        scales: {
+          x: { grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#4d5470'} },
+          y: { grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#4d5470'}, beginAtZero:true }
+        }
+      }
+    });
+  }
+
+  setInterval(() => {
+    if (document.getElementById('page-party').classList.contains('active')) loadParty();
+  }, 120000);
+
+  // ════════════════════════════════
+  //  키워드
+  // ════════════════════════════════
+
+  const KW_COLORS = [
+    '#e8c96a','#5b8dee','#4ecdc4','#a78bfa','#f87171',
+    '#34d399','#fb923c','#e879f9','#38bdf8','#a3e635'
+  ];
+
+  async function loadKeywords() {
+    const server = getServer();
+    const days = document.getElementById('kwDaysFilter').value;
+    const qs = `server=${server}&days=${days}`;
+    document.getElementById('kwStatus').textContent = '로딩 중...';
+
+    try {
+      const res = await fetch(`${API}/api/stats/keywords?${qs}`);
+      const data = await res.json();
+      const keywords = data.keywords || [];
+
+      renderWordCloud(keywords);
+      renderKeywordList(keywords);
+
+      document.getElementById('kwStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')} · ${keywords.length}개 키워드`;
+      setGlobalStatus('live', '연결됨');
+    } catch (e) {
+      document.getElementById('kwStatus').textContent = '서버 연결 실패';
+      setGlobalStatus('error', '서버 오류');
+    }
+  }
+
+  function renderWordCloud(keywords) {
+    const canvas = document.getElementById('wordcloud-canvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth;
+    const H = 320;
+    canvas.width = W;
+    canvas.height = H;
+
+    ctx.clearRect(0, 0, W, H);
+
+    if (!keywords.length) {
+      ctx.fillStyle = '#4d5470';
+      ctx.font = '14px Noto Sans KR';
+      ctx.textAlign = 'center';
+      ctx.fillText('데이터가 부족해요 — 더 쌓이면 나타나요', W/2, H/2);
+      return;
+    }
+
+    const maxCount = keywords[0].count;
+    const minSize = 14;
+    const maxSize = 52;
+    const placed = [];
+
+    keywords.forEach((kw, i) => {
+      const size = Math.round(minSize + (kw.count / maxCount) * (maxSize - minSize));
+      ctx.font = `${700} ${size}px "Noto Sans KR"`;
+      const w = ctx.measureText(kw.word).width;
+      const h = size;
+      const color = KW_COLORS[i % KW_COLORS.length];
+
+      let placed_ok = false;
+      let attempts = 0;
+
+      while (!placed_ok && attempts < 120) {
+        const x = Math.random() * (W - w - 20) + 10;
+        const y = Math.random() * (H - h - 10) + h;
+        const overlap = placed.some(p =>
+          x < p.x + p.w + 8 && x + w + 8 > p.x &&
+          y - h < p.y + 4 && y + 4 > p.y - p.h
+        );
+        if (!overlap) {
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.85 + (kw.count / maxCount) * 0.15;
+          ctx.fillText(kw.word, x, y);
+          placed.push({ x, y, w, h });
+          placed_ok = true;
+        }
+        attempts++;
+      }
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  function renderKeywordList(keywords) {
+    const list = document.getElementById('keyword-list');
+    if (!keywords.length) {
+      list.innerHTML = '<div class="placeholder" style="height:120px"><span>데이터가 부족해요</span></div>';
+      return;
+    }
+
+    const max = keywords[0].count;
+    list.innerHTML = keywords.map((kw, i) => `
+      <div class="keyword-row">
+        <span class="keyword-rank ${i < 3 ? 'top' : ''}">${i + 1}</span>
+        <span class="keyword-word">${kw.word}</span>
+        <div class="keyword-bar-track">
+          <div class="keyword-bar-fill" style="width:${Math.round(kw.count/max*100)}%;background:${KW_COLORS[i % KW_COLORS.length]}"></div>
+        </div>
+        <span class="keyword-count">${kw.count}회</span>
+      </div>
+    `).join('');
+  }
+
+  // 2분마다 키워드/분석 자동 새로고침
+  setInterval(() => {
+    if (document.getElementById('page-keywords').classList.contains('active')) loadKeywords();
+    if (document.getElementById('page-analysis').classList.contains('active')) loadAnalysis();
+  }, 120000);
+
+  // 초기 실행
+  loadHornKings();
+
+  fetch(`${API}/api/stats/summary`)
+    .then(() => setGlobalStatus('live', '연결됨'))
+    .catch(() => setGlobalStatus('error', '서버 꺼짐'));
 </script>
 </body>
 </html>
