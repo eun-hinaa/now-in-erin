@@ -357,8 +357,6 @@
       font-size: 13px;
     }
 
-
-
     /* ══════════════════════════════
        분석 페이지
     ══════════════════════════════ */
@@ -370,13 +368,6 @@
       flex-wrap: wrap;
       align-items: center;
     }
-
-    <div class="section-title" style="margin-top: 20px;">
-      ✨ 오늘의 에린 요약 <span id="dailySummaryDate" style="font-size:11px; font-weight:normal; margin-left:8px; color:var(--text3);"></span>
-    </div>
-    <div class="daily-summary-grid" id="dailySummaryGrid">
-      <div class="placeholder"><div class="spinner"></div></div>
-    </div>
 
     .summary-grid {
       display: grid;
@@ -498,6 +489,29 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── 오늘의 에린 요약 (복원됨) ── */
+    .daily-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 680px) { .daily-summary-grid { grid-template-columns: 1fr; } }
+    
+    .daily-card {
+      background: linear-gradient(135deg, rgba(37,99,235,0.04) 0%, rgba(124,58,237,0.04) 100%);
+      border: 1px solid rgba(167,139,250,0.2);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .daily-card-header { font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+    .daily-stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 4px; }
+    .daily-stat-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .daily-stat-label { color: var(--text2); font-family: 'Noto Sans KR', sans-serif;}
+    .daily-stat-val { font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+    .daily-stat-val.highlight { color: var(--gold); }
 
     /* ══════════════════════════════
        키워드 페이지
@@ -941,7 +955,6 @@
 </head>
 <body>
 
-<!-- ── 서버 선택 랜딩 ── -->
 <div class="landing-overlay" id="landingOverlay">
   <div class="landing-bg"></div>
   <div class="landing-content">
@@ -974,31 +987,6 @@
   </div>
 </div>
 
-/* ── 오늘의 에린 요약 ── */
-    .daily-summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    @media (max-width: 680px) { .daily-summary-grid { grid-template-columns: 1fr; } }
-    
-    .daily-card {
-      background: linear-gradient(135deg, rgba(37,99,235,0.04) 0%, rgba(124,58,237,0.04) 100%);
-      border: 1px solid rgba(167,139,250,0.2);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .daily-card-header { font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
-    .daily-stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 4px; }
-    .daily-stat-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-    .daily-stat-label { color: var(--text2); font-family: 'Noto Sans KR', sans-serif;}
-    .daily-stat-val { font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
-    .daily-stat-val.highlight { color: var(--gold); }
-
-
-<!-- ── 네비게이션 ── -->
 <nav>
   <div class="nav-logo" onclick="showPage('feed')">지금 에린에서는</div>
   <div class="nav-links">
@@ -1023,9 +1011,6 @@
   </div>
 </nav>
 
-<!-- ══════════════════════════════
-     피드 페이지
-══════════════════════════════ -->
 <div class="page active" id="page-feed">
   <div class="wrap">
     <div class="page-header">
@@ -1051,9 +1036,6 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════
-     분석 페이지
-══════════════════════════════ -->
 <div class="page" id="page-analysis">
   <div class="wrap">
     <div class="page-header">
@@ -1069,6 +1051,13 @@
       </select>
       <button class="btn btn-primary" onclick="loadAnalysis()">↻ 새로고침</button>
       <span id="analysisStatus" style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-left:4px;"></span>
+    </div>
+
+    <div class="section-title" style="margin-top: 20px;">
+      ✨ 오늘의 에린 요약 <span id="dailySummaryDate" style="font-size:11px; font-weight:normal; margin-left:8px; color:var(--text3);"></span>
+    </div>
+    <div class="daily-summary-grid" id="dailySummaryGrid">
+      <div class="placeholder"><div class="spinner"></div></div>
     </div>
 
     <div class="summary-grid">
@@ -1121,9 +1110,6 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════
-     키워드 페이지
-══════════════════════════════ -->
 <div class="page" id="page-keywords">
   <div class="wrap">
     <div class="page-header">
@@ -1141,13 +1127,11 @@
       <span class="keyword-status" id="kwStatus"></span>
     </div>
 
-    <!-- 워드클라우드 -->
     <div class="wordcloud-section">
       <div class="section-title">워드클라우드</div>
       <canvas id="wordcloud-canvas"></canvas>
     </div>
 
-    <!-- 키워드 랭킹 -->
     <div class="chart-section">
       <div class="section-title">TOP 20 키워드</div>
       <div class="keyword-list" id="keyword-list">
@@ -1157,7 +1141,6 @@
   </div>
 </div>
 
-<!-- 파티 모집 페이지 -->
 <div class="page" id="page-party">
   <div class="wrap">
     <div class="page-header">
@@ -1184,7 +1167,6 @@
   </div>
 </div>
 
-<!-- 유저 분석 페이지 -->
 <div class="page" id="page-user">
   <div class="wrap">
     <div class="page-header">
@@ -1212,7 +1194,7 @@
   Chart.defaults.color = '#8891aa';
   Chart.defaults.font = { family: 'JetBrains Mono, Noto Sans KR, sans-serif', size: 11 };
 
-async function loadDailySummary() {
+  async function loadDailySummary() {
     const server = getServer();
     const grid = document.getElementById('dailySummaryGrid');
     try {
@@ -1263,7 +1245,7 @@ async function loadDailySummary() {
   // ── 거뿔 왕 로드 ──
   async function loadHornKings() {
     try {
-      const res = await fetch(`https://erin-server-production.up.railway.app/api/stats/horn-king`);
+      const res = await fetch(`${API}/api/stats/horn-king`);
       const data = await res.json();
       const servers = ['류트', '만돌린', '하프', '울프'];
       servers.forEach(server => {
@@ -1295,7 +1277,6 @@ async function loadDailySummary() {
     if (name === 'analysis') loadAnalysis();
     if (name === 'keywords') loadKeywords();
     if (name === 'party') loadParty();
-    if (name === 'user') {};
   }
 
   // ── 서버 변경 ──
@@ -1374,6 +1355,7 @@ async function loadDailySummary() {
     const server = getServer();
     const params = new URLSearchParams({ limit: 100 });
     if (server !== 'all') params.set('server', server);
+    params.set('_t', Date.now()); // 캐시 무력화
 
     try {
       const res = await fetch(`${API}/api/feed?${params}`);
@@ -1402,8 +1384,6 @@ async function loadDailySummary() {
             seenKeys.add(makeKey(item));
             feed.insertBefore(renderFeedItem(item, true), feed.firstChild);
           });
-
-
         }
       }
 
@@ -1413,7 +1393,8 @@ async function loadDailySummary() {
 
       document.getElementById('feedMeta').innerHTML = `총 <span>${feed.querySelectorAll('.feed-item').length}</span>개`;
       applyFilter();
-      setGlobalStatus('live', `연결됨`);
+      const nowTime = new Date().toLocaleTimeString('ko-KR');
+      setGlobalStatus('live', `연결됨 (${nowTime} 갱신)`);
 
     } catch (e) {
       setGlobalStatus('error', '서버 오류');
@@ -1454,13 +1435,6 @@ async function loadDailySummary() {
     });
   }
 
-  function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-
-  window.addEventListener('scroll', () => {
-    isScrolledDown = window.scrollY > 200;
-    if (!isScrolledDown) hideToast();
-  });
-
   // ════════════════════════════════
   //  분석
   // ════════════════════════════════
@@ -1469,7 +1443,10 @@ async function loadDailySummary() {
     const server = getServer();
     const days = document.getElementById('daysFilter').value;
     const qs = `server=${server}&days=${days}`;
-// loadDailySummary();
+    
+    // 🔥 요약 데이터도 함께 호출
+    loadDailySummary(); 
+
     document.getElementById('analysisStatus').textContent = '로딩 중...';
 
     try {
@@ -1587,8 +1564,6 @@ async function loadDailySummary() {
       }
     });
   }
-
-
 
   // ════════════════════════════════
   //  유저 분석
@@ -1810,7 +1785,6 @@ async function loadDailySummary() {
     const maxSize = 52;
     const placed = [];
 
-    // 간단한 랜덤 배치 (충돌 회피)
     keywords.forEach((kw, i) => {
       const size = Math.round(minSize + (kw.count / maxCount) * (maxSize - minSize));
       ctx.font = `${700} ${size}px "Noto Sans KR"`;
@@ -1861,22 +1835,15 @@ async function loadDailySummary() {
     `).join('');
   }
 
-  // 2분마다 키워드 자동 새로고침
+  // 2분마다 키워드/분석 자동 새로고침
   setInterval(() => {
     if (document.getElementById('page-keywords').classList.contains('active')) loadKeywords();
-  }, 120000);
-
-
-  // 2분마다 분석 자동 새로고침
-  setInterval(() => {
     if (document.getElementById('page-analysis').classList.contains('active')) loadAnalysis();
   }, 120000);
 
+  // 초기 실행
   loadHornKings();
 
-  loadHornKings();
-
-  // 초기 서버 연결 확인
   fetch(`${API}/api/stats/summary`)
     .then(() => setGlobalStatus('live', '연결됨'))
     .catch(() => setGlobalStatus('error', '서버 꺼짐'));

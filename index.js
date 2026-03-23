@@ -27,7 +27,7 @@ const pool = new Pool({
 
 // DB 초기화
 async function initDB() {
-await pool.query(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS daily_summary (
       id SERIAL PRIMARY KEY,
       target_date DATE,
@@ -39,6 +39,15 @@ await pool.query(`
       horn_king_count INT,
       created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(target_date, server_name)
+    );
+    CREATE TABLE IF NOT EXISTS horn (
+      id SERIAL PRIMARY KEY,
+      server_name TEXT,
+      character_name TEXT,
+      message TEXT,
+      date_send TIMESTAMP WITH TIME ZONE,
+      category TEXT,
+      UNIQUE(server_name, character_name, message, date_send)
     );
     CREATE INDEX IF NOT EXISTS idx_date_send ON horn(date_send);
     CREATE INDEX IF NOT EXISTS idx_category ON horn(category);
@@ -132,7 +141,10 @@ async function fetchServer(serverName) {
       }
     }
 
-    console.log(`[${serverName}] ${items.length}건 조회, ${newCount}건 신규 저장`);
+    // 터미널 도배 방지를 위해 신규 데이터가 있을 때만 로그 출력
+    if (newCount > 0) {
+      console.log(`[${serverName}] ${items.length}건 중 ${newCount}건 신규 저장`);
+    }
     return newCount;
   } catch (e) {
     console.error(`[${serverName}] 오류:`, e.message);
@@ -142,13 +154,10 @@ async function fetchServer(serverName) {
 
 // 전 서버 수집
 async function fetchAll() {
-  const now = new Date().toLocaleTimeString('ko-KR');
-  console.log(`\n[${now}] 전 서버 수집 시작...`);
   for (const server of SERVERS) {
     await fetchServer(server);
     await new Promise(r => setTimeout(r, 500));
   }
-  console.log(`[${now}] 전 서버 수집 완료\n`);
 }
 
 // ─── API 엔드포인트 ───────────────────────────────
@@ -271,9 +280,7 @@ app.get('/api/stats/keywords', async (req, res) => {
       if (nicknames.has(w) || nicknames.has(raw)) return;
       if (/^[0-9]+$/.test(w)) return;
       if (/^[a-zA-Z]{1,2}$/.test(w)) return;
-      // 채널 표기 제거 (채널1, 채널7 등)
       if (/^채널\d+$/.test(w)) return;
-      // 사람 수 패턴 제거 (1/4, 3명, 2자 등)
       if (/^[0-9]+\/[0-9]+$/.test(raw)) return;
       if (/^[0-9]+[명자인]$/.test(raw)) return;
       if (/^[0-9]+\/[0-9]+[명]?$/.test(raw)) return;
@@ -323,18 +330,15 @@ app.get('/api/stats/party', async (req, res) => {
       normalizedMsg = normalizedMsg.replace(new RegExp(abbr, 'g'), full);
     }
 
-    // 크롬 키워드 우선 체크 (올독식 등 글렌 키워드와 혼용되는 경우 방지)
     const chromePriority = ['크롬바스', '크롬일반', '크일', '크롬일', '크롬', '크쉬', '크롬쉬'];
     const hasChrome = chromePriority.some(kw => message.includes(kw) || normalizedMsg.includes(kw));
 
     let matched = false;
     for (const [name, info] of Object.entries(dungeons)) {
       if (name === '기타') continue;
-      // 크롬 키워드가 있으면 글렌 건너뜀
       if (hasChrome && (name === '글렌베르나 일반' || name === '글렌베르나 쉬움')) continue;
       if (info.keywords.some(kw => message.includes(kw) || normalizedMsg.includes(kw))) {
         info.count++;
-        // recent에 중복 메시지 제외
         if (info.recent.length < 5 && !info.recent.some(r => r.message === message)) {
           info.recent.push({ message, date_send });
         }
@@ -367,7 +371,7 @@ app.get('/api/stats/party', async (req, res) => {
   res.json({ total: rows.length, dungeons: dungeonList, memberPatterns });
 });
 
-// 거뿔 왕 (서버별 오늘 최다 발송자)
+// 거뿔 왕
 app.get('/api/stats/horn-king', async (req, res) => {
   try {
     const kings = {};
@@ -385,10 +389,7 @@ app.get('/api/stats/horn-king', async (req, res) => {
       if (result.rows.length > 0) {
         const name = result.rows[0].character_name;
         const count = parseInt(result.rows[0].count);
-        // 이름 앞 두 글자만 노출, 나머지 XX
-        const masked = name.length <= 2
-          ? name[0] + 'X'
-          : name.slice(0, 2) + 'X'.repeat(name.length - 2);
+        const masked = name.length <= 2 ? name[0] + 'X' : name.slice(0, 2) + 'X'.repeat(name.length - 2);
         kings[server] = { masked, count };
       } else {
         kings[server] = null;
@@ -396,11 +397,9 @@ app.get('/api/stats/horn-king', async (req, res) => {
     }
     res.json(kings);
   } catch (e) {
-    console.error('[거뿔 왕 오류]', e.message);
     res.status(500).json({ error: e.message });
   }
 });
-
 
 // 닉네임 검색
 app.get('/api/user/:name', async (req, res) => {
@@ -415,11 +414,8 @@ app.get('/api/user/:name', async (req, res) => {
     `, [name]);
 
     const rows = result.rows;
-    if (rows.length === 0) {
-      return res.json({ found: false, name });
-    }
+    if (rows.length === 0) return res.json({ found: false, name });
 
-    // 통계
     const total = rows.length;
     const servers = {};
     const categories = { party: 0, trade: 0, guild: 0, etc: 0 };
@@ -436,52 +432,33 @@ app.get('/api/user/:name', async (req, res) => {
     const recentMessages = rows.slice(0, 10).map(r => r.message);
 
     res.json({
-      found: true,
-      name,
-      total,
-      servers,
-      categories,
-      hourMap,
-      peakHour,
-      recentMessages,
-      oldest: rows[rows.length - 1].date_send,
-      newest: rows[0].date_send,
+      found: true, name, total, servers, categories, hourMap, peakHour, recentMessages,
+      oldest: rows[rows.length - 1].date_send, newest: rows[0].date_send,
     });
   } catch (e) {
-    console.error('[닉네임 검색 오류]', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// AI 거뿔 패턴 분석
+// AI 분석
 app.get('/api/user/:name/analyze', async (req, res) => {
   const name = req.params.name;
-
-  if (!genAI) {
-    return res.status(500).json({ error: 'Gemini API 키가 없어요' });
-  }
+  if (!genAI) return res.status(500).json({ error: 'Gemini API 키가 없어요' });
 
   try {
     const result = await pool.query(`
-      SELECT message, category, date_send
-      FROM horn
-      WHERE character_name = $1
-      ORDER BY date_send DESC
-      LIMIT 100
+      SELECT message, category, date_send FROM horn
+      WHERE character_name = $1 ORDER BY date_send DESC LIMIT 100
     `, [name]);
 
     const rows = result.rows;
-    if (rows.length === 0) {
-      return res.json({ found: false });
-    }
+    if (rows.length === 0) return res.json({ found: false });
 
     const messages = rows.map(r => r.message).join('\n');
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `다음은 마비노기 게임의 "${name}" 유저가 거대한 외침의 뿔피리(서버 전체 채팅)로 보낸 메시지들이야:
-
 ${messages}
-
 분석 전에 알아야 할 마비노기 용어:
 - 브리/브리레흐 = 브리 레흐 던전. 1-3관과 4관으로 나뉨
 - 세바 = 세인트 바드 (직업), 세가 = 세이크리드 가드 (직업), 엘나 = 엘레멘탈 나이트, 닼메 = 다크 메이지, 퓨파/뜌따 = 퓨리 파이터
@@ -511,12 +488,11 @@ ${messages}
 
     res.json({ found: true, name, total: rows.length, analysis });
   } catch (e) {
-    console.error('[AI 분석 오류]', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// 전체 통계 요약
+// 전체 통계
 app.get('/api/stats/summary', async (req, res) => {
   const total = await pool.query('SELECT COUNT(*) as count FROM horn');
   const today = await pool.query(`SELECT COUNT(*) as count FROM horn WHERE date_send::timestamptz >= NOW() - INTERVAL '24 hours'`);
@@ -557,23 +533,9 @@ app.get('/api/stats/daily', async (req, res) => {
   }
 });
 
-// ─── 서버 시작 ───────────────────────────────────
-
-async function start() {
-  await initDB();
-
-  app.listen(PORT, () => {
-    console.log(`\n🎺 지금 에린에서는 — 백엔드 서버 시작`);
-    console.log(`   포트: ${PORT}`);
-    console.log(`   수집 서버: ${SERVERS.join(', ')}`);
-    console.log(`   http://localhost:${PORT}\n`);
-    fetchAll();
-  });
-
-  // 매일 밤 자정(00:00 KST)에 전날 데이터 요약 스케줄러
-cron.schedule('0 0 * * *', async () => {
-  console.log('🌙 자정 요약 작업 시작: 오늘의 에린 요약지 생성');
-  // 한국 시간 기준으로 어제 날짜 구하기
+// ── 요약 로직 함수 (자동 & 수동 겸용) ──
+async function generateDailySummary() {
+  console.log('🌙 요약 작업 시작: 오늘의 에린 요약지 생성');
   const nowKst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
   const yesterday = new Date(nowKst);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -581,21 +543,17 @@ cron.schedule('0 0 * * *', async () => {
 
   for (const server of SERVERS) {
     try {
-      // 1. 총 메시지 수 & 가장 활발했던 시간대
       const hourRes = await pool.query(`
         SELECT EXTRACT(HOUR FROM CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') as hour, COUNT(*) as count
-        FROM horn
-        WHERE server_name = $1 AND DATE(CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') = $2
+        FROM horn WHERE server_name = $1 AND DATE(CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') = $2
         GROUP BY hour ORDER BY count DESC
       `, [server, targetDateStr]);
 
       const totalMessages = hourRes.rows.reduce((sum, r) => sum + parseInt(r.count), 0);
       const peakHour = hourRes.rows.length > 0 ? parseInt(hourRes.rows[0].hour) : 0;
 
-      // 2. 거뿔왕
       const kingRes = await pool.query(`
-        SELECT character_name, COUNT(*) as count
-        FROM horn
+        SELECT character_name, COUNT(*) as count FROM horn
         WHERE server_name = $1 AND DATE(CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') = $2
         GROUP BY character_name ORDER BY count DESC LIMIT 1
       `, [server, targetDateStr]);
@@ -603,10 +561,8 @@ cron.schedule('0 0 * * *', async () => {
       const hornKingName = kingRes.rows.length > 0 ? kingRes.rows[0].character_name : '없음';
       const hornKingCount = kingRes.rows.length > 0 ? parseInt(kingRes.rows[0].count) : 0;
 
-      // 3. 인기 던전 (가단한 키워드 매칭)
       const partyRes = await pool.query(`
-        SELECT message FROM horn
-        WHERE server_name = $1 AND category = 'party' AND DATE(CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') = $2
+        SELECT message FROM horn WHERE server_name = $1 AND category = 'party' AND DATE(CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') = $2
       `, [server, targetDateStr]);
 
       const dungeonCounts = { '브리레흐':0, '크롬바스':0, '글렌베르나':0, '몽환의 라비':0 };
@@ -624,7 +580,6 @@ cron.schedule('0 0 * * *', async () => {
         if (dCount > maxCount) { maxCount = dCount; popularDungeon = dName; }
       }
 
-      // 4. DB 저장
       await pool.query(`
         INSERT INTO daily_summary (target_date, server_name, total_messages, peak_hour, popular_dungeon, horn_king_name, horn_king_count)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -637,13 +592,40 @@ cron.schedule('0 0 * * *', async () => {
       console.error(`[${server}] 일일 요약 생성 실패:`, err);
     }
   }
-  console.log('🌙 자정 요약 작업 완료');
-}, { timezone: "Asia/Seoul" });
+  console.log('🌙 요약 작업 완료');
+}
 
- setInterval(() => {
-  fetchAll().catch(console.error);
-}, 10000);
-console.log('⏰ 10초마다 넥슨 API 자동 수집 스케줄 등록 완료');
+// 🔥 수동 강제 정산용 비밀 API
+app.get('/api/admin/force-summary', async (req, res) => {
+  try {
+    await generateDailySummary();
+    res.send('✅ 어제 데이터 강제 정산 완료! 지금 에린에서는 사이트를 새로고침 해보세요.');
+  } catch (e) {
+    res.status(500).send('❌ 오류 발생: ' + e.message);
+  }
+});
+
+// ─── 서버 시작 ───────────────────────────────────
+async function start() {
+  await initDB();
+
+  app.listen(PORT, () => {
+    console.log(`\n🎺 지금 에린에서는 — 백엔드 서버 시작`);
+    console.log(`   포트: ${PORT}`);
+    console.log(`   수집 서버: ${SERVERS.join(', ')}`);
+    console.log(`   http://localhost:${PORT}\n`);
+    fetchAll(); // 최초 1회 실행
+  });
+
+  // 1. 매일 자정에 자동으로 도는 스케줄러 (KST 기준)
+  cron.schedule('0 0 * * *', generateDailySummary, { timezone: "Asia/Seoul" });
+  console.log('⏰ 자정 자동 정산 스케줄 등록 완료');
+
+  // 2. 10초마다 넥슨 API 찌르기 (실시간 수집)
+  setInterval(() => {
+    fetchAll().catch(console.error);
+  }, 10000);
+  console.log('⏰ 10초 실시간 수집 스케줄 등록 완료');
 }
 
 start().catch(console.error);
