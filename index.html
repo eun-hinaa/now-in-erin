@@ -1447,7 +1447,7 @@
   let isScrolledDown = false;
   let newMsgCount = 0;
   let hourChart = null, donutChart = null, lineChart = null;
-  let marketData = []; // 🔥 거래 시세 데이터 저장용
+  let marketData = [];
 
   Chart.defaults.color = '#8891aa';
   Chart.defaults.font = { family: 'JetBrains Mono, Noto Sans KR, sans-serif', size: 11 };
@@ -1458,23 +1458,16 @@
     try {
       const res = await fetch(`${API}/api/stats/daily?server=${server}`);
       const data = await res.json();
-
       if (!data || data.length === 0) {
         grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text3); font-size:13px; padding:20px; background:var(--surface); border-radius:12px; border:1px solid var(--border);">아직 생성된 요약이 없어요. (매일 자정에 전날 기록이 생성됩니다)</div>';
         document.getElementById('dailySummaryDate').textContent = '';
         return;
       }
-
-      // 가장 최근 날짜의 데이터만 필터링
       const latestDate = data[0].target_date.split('T')[0];
       document.getElementById('dailySummaryDate').textContent = `(${latestDate} 기준)`;
-
       const latestData = data.filter(d => d.target_date.startsWith(latestDate));
-
       grid.innerHTML = latestData.map(d => {
-        // 이름 마스킹 처리 (보안 및 프라이버시)
         const maskedName = d.horn_king_name.length <= 2 ? d.horn_king_name[0] + 'X' : d.horn_king_name.slice(0, 2) + 'X'.repeat(d.horn_king_name.length - 2);
-        
         return `
         <div class="daily-card">
           <div class="daily-card-header">
@@ -1493,28 +1486,24 @@
             <span class="daily-stat-label">👑 거뿔 왕</span>
             <span class="daily-stat-val highlight">${maskedName} (${d.horn_king_count}회)</span>
           </div>
-        </div>
-      `}).join('');
+        </div>`
+      }).join('');
     } catch (e) {
       grid.innerHTML = '<div style="grid-column:1/-1; color:var(--red); font-size:13px;">요약 데이터를 불러오는 중 오류가 발생했습니다.</div>';
     }
   }
 
-  // ── 거뿔 왕 로드 ──
   async function loadHornKings() {
     try {
       const res = await fetch(`${API}/api/stats/horn-king`);
       const data = await res.json();
       const servers = ['류트', '만돌린', '하프', '울프'];
-      
       servers.forEach(server => {
         const el = document.getElementById(`king-${server}`);
         if (!el) return;
-        
         if (data[server] && data[server].count > 0) {
           el.innerHTML = `<div class="server-btn-king-label">👑 오늘의 거뿔 왕</div>${data[server].masked}님 (${data[server].count}회)`;
         } else {
-          // 데이터가 아직 안 모였을 때 빈칸 대신 띄워줄 문구
           el.innerHTML = `<div class="server-btn-king-label">👑 오늘의 거뿔 왕</div><span style="color:var(--text3);font-size:11px;">데이터 수집 중...</span>`;
         }
       });
@@ -1523,15 +1512,12 @@
     }
   }
 
-  // ── 서버 선택 랜딩 ──
   function selectServer(server) {
     document.getElementById('globalServer').value = server;
     document.getElementById('landingOverlay').classList.add('hidden');
-    // 피드 자동 시작
     startFeed();
   }
 
-  // ── 페이지 전환 ──
   function showPage(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -1543,7 +1529,6 @@
     if (name === 'market') loadMarket();
   }
 
-  // ── 서버 변경 ──
   function onServerChange() {
     if (feedInterval) {
       clearInterval(feedInterval);
@@ -1554,25 +1539,18 @@
     if (document.getElementById('page-analysis').classList.contains('active')) loadAnalysis();
     if (document.getElementById('page-keywords').classList.contains('active')) loadKeywords();
     if (document.getElementById('page-party').classList.contains('active')) loadParty();
-    
-    // 🔥 괄호 감옥 탈출! 이제 서버를 바꾸면 시세 탭도 바로바로 자동 새로고침됩니다.
     if (document.getElementById('page-market') && document.getElementById('page-market').classList.contains('active')) loadMarket();
-  updateLobbyData();
+    updateLobbyData();
   }
 
   function getServer() { return document.getElementById('globalServer').value; }
 
-  // ── 전역 상태 ──
   function setGlobalStatus(type, text) {
     const dot = document.getElementById('globalDot');
     const txt = document.getElementById('globalStatus');
     dot.className = 'dot' + (type === 'live' ? ' live' : type === 'error' ? ' error' : '');
     txt.textContent = text;
   }
-
-  // ════════════════════════════════
-  //  피드
-  // ════════════════════════════════
 
   function classify(msg) {
     if (/파티|구함|모집|인원|\/\d|[0-9]\/[0-9]/.test(msg)) return 'party';
@@ -1618,7 +1596,7 @@
     const server = getServer();
     const params = new URLSearchParams({ limit: 100 });
     if (server !== 'all') params.set('server', server);
-    params.set('_t', Date.now()); // 캐시 무력화
+    params.set('_t', Date.now());
 
     try {
       const res = await fetch(`${API}/api/feed?${params}`);
@@ -1650,7 +1628,6 @@
         }
       }
 
-      // 최대 300개
       const all = feed.querySelectorAll('.feed-item');
       if (all.length > 300) for (let i = 300; i < all.length; i++) all[i].remove();
 
@@ -1658,20 +1635,16 @@
       applyFilter();
       const nowTime = new Date().toLocaleTimeString('ko-KR');
       setGlobalStatus('live', `연결됨 (${nowTime} 갱신)`);
-
     } catch (e) {
       setGlobalStatus('error', '서버 오류');
     }
   }
 
   function startFeed() {
-    // 🔥 없어진 버튼을 조작하려다 에러 나는 코드 삭제 완료!
     document.getElementById('feed').innerHTML = '<div class="loading-row"><div class="spinner"></div> 거뿔을 불러오는 중...</div>';
     fetchFeed();
     feedInterval = setInterval(fetchFeed, 10000);
   }
-
-  // (stopFeed는 이제 안 쓰므로 지웠습니다)
 
   function clearFeed() {
     seenKeys = new Set();
@@ -1682,15 +1655,12 @@
   function applyFilter() {
     const kw = document.getElementById('filterInput').value.toLowerCase().trim();
     const includeNick = document.getElementById('searchIncludeNick').checked;
-    
     document.querySelectorAll('.feed-item').forEach(el => {
       const msg = el.dataset.msg;
       const nick = el.dataset.nick;
       const textToSearch = includeNick ? (msg + ' ' + nick) : msg;
       el.style.display = (!kw || textToSearch.includes(kw)) ? '' : 'none';
     });
-    
-    // 🔥 피드가 업데이트 될 때마다 로비의 '최근 거뿔'에 3개 복사해서 보여줌!
     const lobbyFeed = document.getElementById('lobbyFeed');
     const items = Array.from(document.querySelectorAll('#feed .feed-item')).slice(0, 3);
     if(items.length > 0) {
@@ -1698,7 +1668,6 @@
     }
   }
 
-  // 🔥 시장 시세가 로드될 때 로비의 '최근 시세'에 3개 복사해서 보여줌!
   function updateLobbyMarket() {
     const lobbyMarket = document.getElementById('lobbyMarket');
     const items = Array.from(document.querySelectorAll('#marketList .market-item')).slice(0, 3);
@@ -1707,35 +1676,24 @@
     }
   }
 
-  // ════════════════════════════════
-  //  분석
-  // ════════════════════════════════
-
   async function loadAnalysis() {
     const server = getServer();
     const days = document.getElementById('daysFilter').value;
     const qs = `server=${server}&days=${days}`;
-    
-    // 🔥 요약 데이터도 함께 호출
     loadDailySummary(); 
     loadHallOfFame();
-    loadHornKings(); //
-
+    loadHornKings();
     document.getElementById('analysisStatus').textContent = '로딩 중...';
-
     try {
       const [summary, hourly, category] = await Promise.all([
-
-  fetch(`${API}/api/stats/summary`).then(r => r.json()),
+        fetch(`${API}/api/stats/summary`).then(r => r.json()),
         fetch(`${API}/api/stats/hourly?${qs}`).then(r => r.json()),
         fetch(`${API}/api/stats/category?${qs}`).then(r => r.json())
       ]);
-
       renderSummary(summary);
       renderHourly(hourly);
       renderDonut(category);
       renderLine(hourly);
-
       document.getElementById('analysisStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
       setGlobalStatus('live', '연결됨');
     } catch (e) {
@@ -1750,17 +1708,14 @@
     try {
       const res = await fetch(`${API}/api/stats/hall-of-fame?server=${server}`);
       const data = await res.json();
-
       if (!data || data.length === 0) {
         list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text3); font-size:13px;">아직 전당에 오른 유저가 없습니다.</div>';
         return;
       }
-
       const medals = ['🥇', '🥈', '🥉'];
       list.innerHTML = data.map((user, index) => {
         const medal = index < 3 ? medals[index] : `<span style="display:inline-block; width:20px; text-align:center; color:var(--text3); font-size:12px;">${index + 1}</span>`;
         const maskedName = user.name.length <= 2 ? user.name[0] + 'X' : user.name.slice(0, 2) + 'X'.repeat(user.name.length - 2);
-        
         return `
           <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
             <div style="display:flex; align-items:center; gap:12px;">
@@ -1772,13 +1727,9 @@
               <div style="color:var(--gold); font-weight:700; font-size:14px; font-family:'JetBrains Mono', monospace;">왕좌 ${user.win_count}회</div>
               <div style="color:var(--text3); font-size:11px; font-family:'JetBrains Mono', monospace; margin-top:2px;">총 ${parseInt(user.total_horns).toLocaleString()}번 외침</div>
             </div>
-          </div>
-        `;
+          </div>`;
       }).join('');
-      
-      // 마지막 줄은 테두리 제거
       if(list.lastElementChild) list.lastElementChild.style.borderBottom = 'none';
-
     } catch (e) {
       list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--red); font-size:13px;">명예의 전당을 불러올 수 없습니다.</div>';
     }
@@ -1803,9 +1754,7 @@
     const peakVal = Math.max(...hourly);
     document.getElementById('peakHour').textContent = `${peak}시`;
     document.getElementById('peakCount').textContent = `${peakVal}건`;
-    document.getElementById('peakBadge').innerHTML = peakVal > 0
-      ? `<div class="peak-badge">🔥 피크: ${peak}시 — ${peakVal}건</div>` : '';
-
+    document.getElementById('peakBadge').innerHTML = peakVal > 0 ? `<div class="peak-badge">🔥 피크: ${peak}시 — ${peakVal}건</div>` : '';
     const wrap = document.getElementById('hourWrap');
     wrap.innerHTML = '<canvas id="hourChart"></canvas>';
     if (hourChart) hourChart.destroy();
@@ -1823,10 +1772,7 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}건` } } },
-        scales: {
-          x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 12, color: '#9299b0' } },
-          y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#9299b0' }, beginAtZero: true }
-        }
+        scales: { x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 12, color: '#9299b0' } }, y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#9299b0' }, beginAtZero: true } }
       }
     });
   }
@@ -1842,10 +1788,7 @@
     donutChart = new Chart(document.getElementById('donutChart'), {
       type: 'doughnut',
       data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#f4f6f9', borderWidth: 3, hoverOffset: 6 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false, cutout: '68%',
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw}건 (${total>0?Math.round(c.raw/total*100):0}%)` } } }
-      }
+      options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw}건 (${total>0?Math.round(c.raw/total*100):0}%)` } } } }
     });
     document.getElementById('donutLegend').innerHTML = labels.map((l,i) => `
       <div class="legend-row">
@@ -1863,78 +1806,39 @@
       type: 'line',
       data: {
         labels: Array.from({length:24}, (_,i) => `${i}시`),
-        datasets: [{
-          data: hourly,
-          borderColor: '#4ecdc4', backgroundColor: 'rgba(78,205,196,0.07)',
-          borderWidth: 2, pointRadius: 2, fill: true, tension: 0.4
-        }]
+        datasets: [{ data: hourly, borderColor: '#4ecdc4', backgroundColor: 'rgba(78,205,196,0.07)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.4 }]
       },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}건` } } },
-        scales: {
-          x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 8, color: '#9299b0' } },
-          y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#9299b0' }, beginAtZero: true }
-        }
-      }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}건` } } }, scales: { x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 8, color: '#9299b0' } }, y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#9299b0' }, beginAtZero: true } } }
     });
   }
-
-  // ════════════════════════════════
-  //  유저 분석
-  // ════════════════════════════════
 
   async function searchUser() {
     const name = document.getElementById('userSearchInput').value.trim();
     if (!name) return;
-
     const result = document.getElementById('userResult');
     result.innerHTML = '<div class="loading-row"><div class="spinner"></div> 검색 중...</div>';
-
     try {
       const res = await fetch(`${API}/api/user/${encodeURIComponent(name)}`);
       const data = await res.json();
-
       if (!data.found) {
         result.innerHTML = `<div class="user-card"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">${name} 님의 거뿔 기록이 없어요</div><div class="empty-sub">수집된 기간 내에 거뿔을 불지 않았거나 닉네임이 다를 수 있어요</div></div></div>`;
         return;
       }
-
       const serverList = Object.entries(data.servers).map(([s, c]) => `${s}(${c})`).join(', ');
-      const catList = [
-        data.categories.party ? `파티 ${data.categories.party}` : '',
-        data.categories.trade ? `거래 ${data.categories.trade}` : '',
-        data.categories.guild ? `길드 ${data.categories.guild}` : '',
-        data.categories.etc ? `일반 ${data.categories.etc}` : '',
-      ].filter(Boolean).join(' · ');
-
+      const catList = [ data.categories.party ? `파티 ${data.categories.party}` : '', data.categories.trade ? `거래 ${data.categories.trade}` : '', data.categories.guild ? `길드 ${data.categories.guild}` : '', data.categories.etc ? `일반 ${data.categories.etc}` : '' ].filter(Boolean).join(' · ');
       result.innerHTML = `
         <div class="user-card">
           <div class="user-name">${data.name}</div>
           <div class="user-sub">${serverList} · ${catList}</div>
           <div class="user-stats">
-            <div class="user-stat">
-              <div class="user-stat-num">${data.total}</div>
-              <div class="user-stat-label">총 거뿔 수</div>
-            </div>
-            <div class="user-stat">
-              <div class="user-stat-num">${data.peakHour}시</div>
-              <div class="user-stat-label">주 활동 시간</div>
-            </div>
-            <div class="user-stat">
-              <div class="user-stat-num">${Object.keys(data.servers).length}개</div>
-              <div class="user-stat-label">활동 서버</div>
-            </div>
+            <div class="user-stat"><div class="user-stat-num">${data.total}</div><div class="user-stat-label">총 거뿔 수</div></div>
+            <div class="user-stat"><div class="user-stat-num">${data.peakHour}시</div><div class="user-stat-label">주 활동 시간</div></div>
+            <div class="user-stat"><div class="user-stat-num">${Object.keys(data.servers).length}개</div><div class="user-stat-label">활동 서버</div></div>
           </div>
           <div class="section-title">최근 거뿔</div>
-          <div class="recent-messages">
-            ${data.recentMessages.map(m => `<div class="recent-msg-item">📯 ${m}</div>`).join('')}
-          </div>
+          <div class="recent-messages">${data.recentMessages.map(m => `<div class="recent-msg-item">📯 ${m}</div>`).join('')}</div>
         </div>
-        <div id="aiAnalysisArea">
-          <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;" onclick="analyzeUser('${data.name}')">✨ AI 거뿔 패턴 분석하기</button>
-        </div>
-      `;
+        <div id="aiAnalysisArea"><button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;" onclick="analyzeUser('${data.name}')">✨ AI 거뿔 패턴 분석하기</button></div>`;
     } catch (e) {
       result.innerHTML = '<div class="user-card"><div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">오류가 발생했어요</div></div></div>';
     }
@@ -1943,16 +1847,13 @@
   async function analyzeUser(name) {
     const area = document.getElementById('aiAnalysisArea');
     area.innerHTML = '<div class="loading-row"><div class="spinner"></div> AI가 분석 중... (5~10초)</div>';
-
     try {
       const res = await fetch(`${API}/api/user/${encodeURIComponent(name)}/analyze`);
       const data = await res.json();
-
       if (!data.found || !data.analysis) {
         area.innerHTML = '<div class="ai-card"><div class="ai-type">분석 실패</div><div class="ai-desc">데이터가 부족하거나 오류가 발생했어요</div></div>';
         return;
       }
-
       const a = data.analysis;
       area.innerHTML = `
         <div class="ai-card">
@@ -1960,22 +1861,15 @@
           <div class="ai-type">「 ${a.type} 」</div>
           <div class="ai-desc">${a.description}</div>
           <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">주요 특징</div>
-          <div class="ai-traits">
-            ${(a.traits || []).map(t => `<span class="ai-trait">${t}</span>`).join('')}
-          </div>
+          <div class="ai-traits">${(a.traits || []).map(t => `<span class="ai-trait">${t}</span>`).join('')}</div>
           ${a.activeTime ? `<div style="font-size:12px;color:var(--text3);margin-top:12px;">⏰ ${a.activeTime}</div>` : ''}
           ${a.mainActivity ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">🎯 ${a.mainActivity}</div>` : ''}
-        </div>
-      `;
+        </div>`;
     } catch (e) {
       area.innerHTML = '<div class="ai-card"><div class="ai-type">분석 실패</div><div class="ai-desc">오류가 발생했어요</div></div>';
     }
   }
 
-  // ════════════════════════════════
-  //  파티 모집
-  // ════════════════════════════════
-  let memberChart = null;
   const DUNGEON_COLOR = { 'blue':'d-bri', 'bri4':'d-bri4', 'red':'d-crom', 'teal':'d-glen', 'purple':'d-purple', 'gold':'d-gold', 'etc':'d-etc' };
 
   async function loadParty() {
@@ -1995,11 +1889,8 @@
   }
 
   function renderParty(data) {
-    document.getElementById('partyTotalBadge').innerHTML =
-      `<div class="party-total-badge">🎮 총 파티 모집 메시지 <strong>${data.total}건</strong></div>`;
-
+    document.getElementById('partyTotalBadge').innerHTML = `<div class="party-total-badge">🎮 총 파티 모집 메시지 <strong>${data.total}건</strong></div>`;
     const grid = document.getElementById('partyGrid');
-    
     grid.innerHTML = (data.dungeons || []).map(d => {
       const cls = DUNGEON_COLOR[d.color] || 'd-etc';
       const recentHtml = d.recent.slice(0,3).map(r => {
@@ -2007,10 +1898,8 @@
         const hh = String(dObj.getHours()).padStart(2, '0');
         const mm = String(dObj.getMinutes()).padStart(2, '0');
         const ss = String(dObj.getSeconds()).padStart(2, '0');
-        
         return `<div class="dungeon-recent-item"><span style="color:var(--text3); margin-right:4px;">[${hh}:${mm}:${ss}]</span>📯 ${r.message}</div>`;
       }).join('');
-      
       return `
         <div class="dungeon-card ${cls}">
           <div class="dungeon-name">${d.name}</div>
@@ -2020,38 +1909,34 @@
     }).join('');
   }
 
-  setInterval(() => {
-    if (document.getElementById('page-party').classList.contains('active')) loadParty();
-  }, 120000);
-
-  // 🔥 거뿔 거래 시세 탭 로직
   async function loadMarket() {
     const server = getServer();
     document.getElementById('marketStatus').textContent = '로딩 중...';
+    loadBlackMarket();
     try {
       const res = await fetch(`${API}/api/stats/market?server=${server}&days=3`);
       const data = await res.json();
       marketData = data.trades || [];
       renderMarket();
       document.getElementById('marketStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')} · ${marketData.length}건 발골 완료`;
-    } let blackMarketChart = null;
+    } catch (e) {
+      document.getElementById('marketStatus').textContent = '서버 연결 실패';
+    }
+  }
 
+  let blackMarketChart = null;
   async function loadBlackMarket() {
     const server = getServer();
     try {
       const res = await fetch(`${API}/api/stats/blackmarket?server=${server}`);
       const data = await res.json();
-      
       const chartWrap = document.getElementById('blackMarketChartWrap');
       const cardsWrap = document.getElementById('blackMarketCards');
-      
       if (Object.keys(data).length === 0) {
         chartWrap.innerHTML = '<div class="empty-state">데이터가 부족합니다</div>';
         cardsWrap.innerHTML = '<div class="empty-state">최근 거래 내역이 없습니다</div>';
         return;
       }
-
-      // 카드 UI 렌더링
       cardsWrap.innerHTML = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).map(([name, info]) => `
         <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface2); padding:12px 16px; border-radius:8px;">
           <div style="font-weight:700; font-size:14px; color:var(--text);">${name}</div>
@@ -2059,45 +1944,29 @@
             <div style="color:var(--gold); font-weight:900; font-family:'JetBrains Mono', monospace; font-size:16px;">${info.avg}숲</div>
             <div style="font-size:10px; color:var(--text3);">최근 ${info.count}건 발견</div>
           </div>
-        </div>
-      `).join('');
+        </div>`).join('');
 
-      // 그래프 렌더링 (가장 데이터가 많은 상위 2개 아이템만 선별)
       const topItems = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).slice(0, 2);
-      const colors = ['#dc2626', '#7c3aed']; // 빨강, 보라
-      
+      const colors = ['#dc2626', '#7c3aed'];
       chartWrap.innerHTML = '<canvas id="blackMarketCanvas"></canvas>';
       if (blackMarketChart) blackMarketChart.destroy();
-      
       const datasets = topItems.map(([name, info], idx) => ({
         label: name,
         data: info.history.map(h => ({ x: new Date(h.time), y: h.price })),
-        borderColor: colors[idx],
-        backgroundColor: colors[idx],
-        borderWidth: 2,
-        pointRadius: 2,
-        tension: 0.3
+        borderColor: colors[idx], backgroundColor: colors[idx], borderWidth: 2, pointRadius: 2, tension: 0.3
       }));
-
       blackMarketChart = new Chart(document.getElementById('blackMarketCanvas'), {
-        type: 'line',
-        data: { datasets },
+        type: 'line', data: { datasets },
         options: {
-          responsive: true, maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
+          responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
           plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: {size: 10} } } },
-          scales: {
-            x: { type: 'time', time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } }, ticks: { font: {size: 9} } },
-            y: { beginAtZero: false, ticks: { font: {size: 10} } }
-          }
+          scales: { x: { type: 'time', time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } }, ticks: { font: {size: 9} } }, y: { beginAtZero: false, ticks: { font: {size: 10} } } }
         }
       });
-
     } catch (e) {
       console.error(e);
       document.getElementById('blackMarketChartWrap').innerHTML = '<div class="empty-state">오류 발생</div>';
     }
-  }
   }
 
   function filterMarket() { renderMarket(); }
@@ -2106,60 +1975,41 @@
     const list = document.getElementById('marketList');
     const kw = document.getElementById('marketSearch').value.trim().toLowerCase();
     const filtered = marketData.filter(t => t.item.toLowerCase().includes(kw));
-    
     if(filtered.length === 0) {
       list.innerHTML = '<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">거래 내역이 없어요</div></div>';
       return;
     }
-    
     list.innerHTML = filtered.map(t => {
       const isSell = t.action === '판매';
       const timeStr = new Date(t.time).toLocaleString('ko-KR', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-      
       return `
         <div class="market-item action-${isSell ? 'sell' : 'buy'}">
           <div class="market-info">
             <div class="market-item-name">${t.item}</div>
             <div class="market-meta">📡 ${t.server} · 👤 ${t.character} · ⏰ ${timeStr}</div>
-            
             <div class="market-original">📯 ${t.original}</div>
           </div>
           <div class="market-price-col">
             <div class="market-price">${t.price.toLocaleString()}${t.unit}</div>
             <div class="market-action">${isSell ? '팝니다' : '삽니다'}</div>
           </div>
-        </div>
-      `;
+        </div>`;
     }).join('');
-    updateLobbyMarket(); // 🔥 시장 목록 그려질 때 로비도 업데이트!
+    updateLobbyMarket();
   }
 
-  // ════════════════════════════════
-  //  키워드
-  // ════════════════════════════════
-
-  const KW_COLORS = [
-    '#e8c96a','#5b8dee','#4ecdc4','#a78bfa','#f87171',
-    '#34d399','#fb923c','#e879f9','#38bdf8','#a3e635'
-  ];
-
+  const KW_COLORS = ['#e8c96a','#5b8dee','#4ecdc4','#a78bfa','#f87171','#34d399','#fb923c','#e879f9','#38bdf8','#a3e635'];
   let currentKwTab = 'all';
 
   function switchKwTab(tab) {
     currentKwTab = tab;
     document.querySelectorAll('.kw-tab').forEach(b => b.classList.remove('active'));
     document.getElementById(`kwtab-${tab}`).classList.add('active');
-
     const isGuild = tab === 'guild';
     document.getElementById('kw-wordcloud-section').style.display = isGuild ? 'none' : '';
     document.getElementById('kw-ranking-section').style.display = isGuild ? 'none' : '';
     document.getElementById('kw-guild-section').style.display = isGuild ? '' : 'none';
-
-    if (isGuild) {
-      loadGuilds();
-    } else {
-      loadKeywords();
-    }
+    if (isGuild) loadGuilds(); else loadKeywords();
   }
 
   async function loadGuilds() {
@@ -2170,20 +2020,17 @@
       const res = await fetch(`${API}/api/stats/guilds?server=${server}&days=${days}`);
       const data = await res.json();
       const list = document.getElementById('guild-list');
-
       if (!data.guilds || data.guilds.length === 0) {
         if (data.raw && data.raw.length > 0) {
           list.innerHTML = data.raw.map(r => `
             <div class="guild-card">
               <div class="guild-name">📯 ${r.character_name} <span class="badge badge-server">${r.server_name}</span></div>
               <div class="guild-msg">${r.message}</div>
-            </div>
-          `).join('');
+            </div>`).join('');
         } else {
           list.innerHTML = '<div class="placeholder" style="height:120px"><span>현재 길드원 모집 중인 곳이 없어요</span></div>';
         }
       } else {
-        // 🔥 길드 탭: 닉네임, 채널, 시간, 전체 텍스트 모두 예쁘게 표시
         list.innerHTML = data.guilds.map(g => `
           <div class="guild-card">
             <div class="guild-name">🏰 [${g.name}] <span class="badge badge-server">${g.server}</span></div>
@@ -2196,13 +2043,10 @@
                     <span style="color:var(--text3); font-family:'JetBrains Mono', monospace;">📡 ${m.channel} · ⏰ ${timeStr}</span>
                   </div>
                   <div style="font-size:13px; color:var(--text); line-height:1.5; word-break:break-all;">${m.text}</div>
-                </div>
-              `;
+                </div>`;
             }).join('')}
-          </div>
-        `).join('');
+          </div>`).join('');
       }
-
       document.getElementById('kwStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')} · ${data.total}건`;
       setGlobalStatus('live', '연결됨');
     } catch (e) {
@@ -2215,15 +2059,12 @@
     const days = document.getElementById('kwDaysFilter').value;
     const qs = `server=${server}&days=${days}&category=${currentKwTab}`;
     document.getElementById('kwStatus').textContent = '로딩 중...';
-
     try {
       const res = await fetch(`${API}/api/stats/keywords?${qs}`);
       const data = await res.json();
       const keywords = data.keywords || [];
-
       renderWordCloud(keywords);
       renderKeywordList(keywords);
-
       document.getElementById('kwStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')} · ${keywords.length}개 키워드`;
       setGlobalStatus('live', '연결됨');
     } catch (e) {
@@ -2239,9 +2080,7 @@
     const H = 320;
     canvas.width = W;
     canvas.height = H;
-
     ctx.clearRect(0, 0, W, H);
-
     if (!keywords.length) {
       ctx.fillStyle = '#4d5470';
       ctx.font = '14px Noto Sans KR';
@@ -2249,29 +2088,20 @@
       ctx.fillText('데이터가 부족해요 — 더 쌓이면 나타나요', W/2, H/2);
       return;
     }
-
     const maxCount = keywords[0].count;
-    const minSize = 14;
-    const maxSize = 52;
+    const minSize = 14, maxSize = 52;
     const placed = [];
-
     keywords.forEach((kw, i) => {
       const size = Math.round(minSize + (kw.count / maxCount) * (maxSize - minSize));
       ctx.font = `${700} ${size}px "Noto Sans KR"`;
       const w = ctx.measureText(kw.word).width;
       const h = size;
       const color = KW_COLORS[i % KW_COLORS.length];
-
-      let placed_ok = false;
-      let attempts = 0;
-
+      let placed_ok = false, attempts = 0;
       while (!placed_ok && attempts < 120) {
         const x = Math.random() * (W - w - 20) + 10;
         const y = Math.random() * (H - h - 10) + h;
-        const overlap = placed.some(p =>
-          x < p.x + p.w + 8 && x + w + 8 > p.x &&
-          y - h < p.y + 4 && y + 4 > p.y - p.h
-        );
+        const overlap = placed.some(p => x < p.x + p.w + 8 && x + w + 8 > p.x && y - h < p.y + 4 && y + 4 > p.y - p.h);
         if (!overlap) {
           ctx.fillStyle = color;
           ctx.globalAlpha = 0.85 + (kw.count / maxCount) * 0.15;
@@ -2291,7 +2121,6 @@
       list.innerHTML = '<div class="placeholder" style="height:120px"><span>데이터가 부족해요</span></div>';
       return;
     }
-
     const max = keywords[0].count;
     list.innerHTML = keywords.map((kw, i) => `
       <div class="keyword-row">
@@ -2301,21 +2130,16 @@
           <div class="keyword-bar-fill" style="width:${Math.round(kw.count/max*100)}%;background:${KW_COLORS[i % KW_COLORS.length]}"></div>
         </div>
         <span class="keyword-count">${kw.count}회</span>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
 
-  // 2분마다 키워드/분석 자동 새로고침
   setInterval(() => {
     if (document.getElementById('page-party').classList.contains('active')) loadParty();
-    if (document.getElementById('page-market') && document.getElementById('page-market').classList.contains('active')) loadMarket(); // 🔥 시세 탭 추가
+    if (document.getElementById('page-market') && document.getElementById('page-market').classList.contains('active')) loadMarket();
   }, 120000);
 
-// ── 🏠 로비(라운지) 데이터 업데이트 ──
   async function updateLobbyData() {
     const server = getServer();
-
-    // 1. 급상승 키워드
     fetch(`${API}/api/stats/keywords?server=${server}&days=1&category=all`)
       .then(r => r.json())
       .then(data => {
@@ -2325,7 +2149,6 @@
         `).join('') : '<div class="empty-state">데이터 대기중</div>';
       });
 
-    // 2. 파티 신호등
     fetch(`${API}/api/stats/party?server=${server}&days=1`)
       .then(r => r.json())
       .then(data => {
@@ -2340,7 +2163,6 @@
         `).join('') : '<div class="empty-state">파티 대기중</div>';
       });
 
-    // 3. 오늘의 스피커
     fetch(`${API}/api/stats/horn-king`)
       .then(r => r.json())
       .then(data => {
@@ -2353,7 +2175,6 @@
         ` : '<div class="empty-state">집계중</div>';
       });
 
-    // 4. AI 에린 기상캐스터
     document.getElementById('lobbyWeather').innerHTML = '<div class="loading-row"><div class="spinner"></div> AI가 에린의 날씨를 관측 중입니다...</div>';
     fetch(`${API}/api/stats/lobby-weather?server=${server}`)
       .then(r => r.json())
