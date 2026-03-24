@@ -59,6 +59,26 @@
 .action-sell .market-action { background: rgba(37,99,235,0.1); color: var(--blue); }
 .action-buy .market-price { color: var(--red); }
 .action-buy .market-action { background: rgba(220,38,38,0.1); color: var(--red); }
+/* ── 툴팁 애니메이션 및 스타일 ── */
+.market-original { 
+  display: none; 
+  margin-top: 10px; 
+  font-size: 12px; 
+  color: var(--text2); 
+  background: var(--surface2); 
+  padding: 8px 12px; 
+  border-radius: 8px; 
+  border: 1px solid var(--border2); 
+  word-break: break-all; 
+}
+.market-item:hover .market-original { 
+  display: block; 
+  animation: fadeIn 0.2s ease-out forwards; 
+}
+@keyframes fadeIn { 
+  from { opacity: 0; transform: translateY(-4px); } 
+  to { opacity: 1; transform: translateY(0); } 
+}
 
     /* ── 네비게이션 ── */
     nav {
@@ -1940,19 +1960,13 @@
       const isSell = t.action === '판매';
       const timeStr = new Date(t.time).toLocaleString('ko-KR', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
       
-      // 🔥 onmouseenter, onmouseleave 로 마우스를 올리면 원본 거뿔 박스가 보이도록 설정!
       return `
-        <div class="market-item action-${isSell ? 'sell' : 'buy'}" 
-             onmouseenter="this.querySelector('.market-original').style.display='block'" 
-             onmouseleave="this.querySelector('.market-original').style.display='none'">
+        <div class="market-item action-${isSell ? 'sell' : 'buy'}">
           <div class="market-info">
             <div class="market-item-name">${t.item}</div>
             <div class="market-meta">📡 ${t.server} · 👤 ${t.character} · ⏰ ${timeStr}</div>
             
-            <div class="market-original" style="display:none; margin-top:8px; font-size:11px; color:var(--text2); background:var(--bg); padding:6px 10px; border-radius:6px; border:1px solid var(--border); word-break:break-all;">
-              📯 ${t.original}
-            </div>
-            
+            <div class="market-original">📯 ${t.original}</div>
           </div>
           <div class="market-price-col">
             <div class="market-price">${t.price.toLocaleString()}${t.unit}</div>
