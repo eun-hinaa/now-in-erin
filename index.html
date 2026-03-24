@@ -951,6 +951,113 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    /* ── 오늘의 에린 요약 ── */
+    .daily-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 680px) { .daily-summary-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .daily-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .daily-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .daily-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .daily-stat-row:last-child { border-bottom: none; }
+    .daily-stat-label { color: var(--text3); }
+    .daily-stat-val { font-weight: 700; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .daily-stat-val.highlight { color: var(--gold); }
+
+    /* ── 키워드 탭 ── */
+    .kw-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .kw-tab {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--text2);
+      transition: all 0.15s;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .kw-tab:hover { background: var(--surface2); }
+
+    .kw-tab.active {
+      background: var(--gold);
+      color: #08090d;
+      border-color: var(--gold);
+    }
+
+    /* ── 길드 카드 ── */
+    .guild-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .guild-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    .guild-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .guild-msg {
+      font-size: 12px;
+      color: var(--text3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .guild-msg:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -1134,14 +1241,29 @@
       <span class="keyword-status" id="kwStatus"></span>
     </div>
 
-    <div class="wordcloud-section">
+    <div class="kw-tabs">
+      <button class="kw-tab active" id="kwtab-all" onclick="switchKwTab('all')">전체</button>
+      <button class="kw-tab" id="kwtab-party" onclick="switchKwTab('party')">🗡️ 사냥</button>
+      <button class="kw-tab" id="kwtab-trade" onclick="switchKwTab('trade')">💰 거래</button>
+      <button class="kw-tab" id="kwtab-guild" onclick="switchKwTab('guild')">🏰 길드</button>
+      <button class="kw-tab" id="kwtab-etc" onclick="switchKwTab('etc')">💬 일반</button>
+    </div>
+
+    <div id="kw-wordcloud-section" class="wordcloud-section">
       <div class="section-title">워드클라우드</div>
       <canvas id="wordcloud-canvas"></canvas>
     </div>
 
-    <div class="chart-section">
+    <div id="kw-ranking-section" class="chart-section">
       <div class="section-title">TOP 20 키워드</div>
       <div class="keyword-list" id="keyword-list">
+        <div class="placeholder" style="height:200px"><div class="spinner"></div><span>로딩 중...</span></div>
+      </div>
+    </div>
+
+    <div id="kw-guild-section" class="chart-section" style="display:none">
+      <div class="section-title">지금 길드원 모집 중</div>
+      <div class="guild-list" id="guild-list">
         <div class="placeholder" style="height:200px"><div class="spinner"></div><span>로딩 중...</span></div>
       </div>
     </div>
@@ -1459,7 +1581,9 @@
 
     try {
       const [summary, hourly, category] = await Promise.all([
-        fetch(`${API}/api/stats/summary`).then(r => r.json()),
+        loadHornKings();
+
+  fetch(`${API}/api/stats/summary`).then(r => r.json()),
         fetch(`${API}/api/stats/hourly?${qs}`).then(r => r.json()),
         fetch(`${API}/api/stats/category?${qs}`).then(r => r.json()),
       ]);
@@ -1788,10 +1912,66 @@
     '#34d399','#fb923c','#e879f9','#38bdf8','#a3e635'
   ];
 
+  let currentKwTab = 'all';
+
+  function switchKwTab(tab) {
+    currentKwTab = tab;
+    document.querySelectorAll('.kw-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById(`kwtab-${tab}`).classList.add('active');
+
+    const isGuild = tab === 'guild';
+    document.getElementById('kw-wordcloud-section').style.display = isGuild ? 'none' : '';
+    document.getElementById('kw-ranking-section').style.display = isGuild ? 'none' : '';
+    document.getElementById('kw-guild-section').style.display = isGuild ? '' : 'none';
+
+    if (isGuild) {
+      loadGuilds();
+    } else {
+      loadKeywords();
+    }
+  }
+
+  async function loadGuilds() {
+    const server = getServer();
+    const days = document.getElementById('kwDaysFilter').value;
+    document.getElementById('kwStatus').textContent = '로딩 중...';
+    try {
+      const res = await fetch(`${API}/api/stats/guilds?server=${server}&days=${days}`);
+      const data = await res.json();
+      const list = document.getElementById('guild-list');
+
+      if (!data.guilds || data.guilds.length === 0) {
+        // 파싱된 길드명이 없으면 raw 메시지 목록 표시
+        if (data.raw && data.raw.length > 0) {
+          list.innerHTML = data.raw.map(r => `
+            <div class="guild-card">
+              <div class="guild-name">📯 ${r.character_name} <span class="badge badge-server">${r.server_name}</span></div>
+              <div class="guild-msg">${r.message}</div>
+            </div>
+          `).join('');
+        } else {
+          list.innerHTML = '<div class="placeholder" style="height:120px"><span>현재 길드원 모집 중인 곳이 없어요</span></div>';
+        }
+      } else {
+        list.innerHTML = data.guilds.map(g => `
+          <div class="guild-card">
+            <div class="guild-name">🏰 ${g.name} <span class="badge badge-server">${g.server}</span></div>
+            ${g.messages.map(m => `<div class="guild-msg">📯 ${m}</div>`).join('')}
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('kwStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')} · ${data.total}건`;
+      setGlobalStatus('live', '연결됨');
+    } catch (e) {
+      document.getElementById('kwStatus').textContent = '서버 연결 실패';
+    }
+  }
+
   async function loadKeywords() {
     const server = getServer();
     const days = document.getElementById('kwDaysFilter').value;
-    const qs = `server=${server}&days=${days}`;
+    const qs = `server=${server}&days=${days}&category=${currentKwTab}`;
     document.getElementById('kwStatus').textContent = '로딩 중...';
 
     try {

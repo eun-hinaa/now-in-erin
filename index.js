@@ -206,6 +206,60 @@ app.get('/api/stats/horn-king', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// 길드원 모집 현황
+app.get('/api/stats/guilds', async (req, res) => {
+  const days = parseInt(req.query.days) || 1;
+  const server = req.query.server;
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  let query = `
+    SELECT DISTINCT ON (message) character_name, message, date_send, server_name
+    FROM horn
+    WHERE category = 'guild' AND date_send >= $1
+  `;
+  const params = [since];
+
+  if (server && server !== 'all') {
+    params.push(server);
+    query += ` AND server_name = $${params.length}`;
+  }
+
+  query += ` ORDER BY message, date_send DESC`;
+
+  try {
+    const result = await pool.query(query, params);
+    const rows = result.rows;
+
+    // 길드명 추출 (괄호 패턴)
+    const guildMap = {};
+    rows.forEach(r => {
+      const match = r.message.match(/[[\(【<「『](.*?)[]\)】>」』]/) ||
+                    r.message.match(/([가-힣a-zA-Z0-9]{2,10})\s*길드/);
+      const guildName = match
+        ? match[1].replace(/채널\d+/, '').trim()
+        : null;
+
+      if (guildName && guildName.length >= 2 && !/^\d+$/.test(guildName)) {
+        if (!guildMap[guildName]) {
+          guildMap[guildName] = { name: guildName, messages: [], server: r.server_name };
+        }
+        if (guildMap[guildName].messages.length < 3) {
+          guildMap[guildName].messages.push(r.message);
+        }
+      }
+    });
+
+    const guilds = Object.values(guildMap)
+      .sort((a, b) => b.messages.length - a.messages.length)
+      .slice(0, 20);
+
+    res.json({ total: rows.length, guilds, raw: rows.slice(0, 50) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 async function generateDailySummary() {
   console.log('🌙 요약 작업 시작: 오늘의 에린 요약지 생성');
   const yesterday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
@@ -224,9 +278,10 @@ async function generateDailySummary() {
 
       await pool.query(`
         INSERT INTO daily_summary (target_date, server_name, total_messages, peak_hour, popular_dungeon, horn_king_name, horn_king_count)
-        VALUES ($1, $2, $3, $4, '크롬바스', $6, $7)
+        VALUES ($1, $2, $3, $4, '미정', $5, $6)
         ON CONFLICT (target_date, server_name) DO UPDATE SET
-          total_messages = EXCLUDED.total_messages, peak_hour = EXCLUDED.peak_hour, horn_king_name = EXCLUDED.horn_king_name, horn_king_count = EXCLUDED.horn_king_count
+          total_messages = EXCLUDED.total_messages, peak_hour = EXCLUDED.peak_hour,
+          horn_king_name = EXCLUDED.horn_king_name, horn_king_count = EXCLUDED.horn_king_count
       `, [targetDateStr, server, totalMessages, peakHour, hornKingName, hornKingCount]);
     } catch (err) { console.error(err); }
   }
@@ -372,6 +427,6 @@ async function start() {
   cron.schedule('0 0 * * *', generateDailySummary, { timezone: "Asia/Seoul" });
   
   // 🔥 429 방지용 60초 주기 (매우 중요)
-  setInterval(() => { fetchAll().catch(console.error); }, 60000); 
+  setInterval(() => { fetchAll().catch(console.error); }, 100000); // 100초 = 하루 약 864회 × 4서버 
 }
 start().catch(console.error);
