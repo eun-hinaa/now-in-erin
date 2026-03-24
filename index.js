@@ -355,13 +355,15 @@ app.get('/api/stats/party', async (req, res) => {
     params.push(server); 
     query += ` AND server_name = $${params.length}`; 
   }
-  // 🔥 에러의 주범! 정렬 구문을 반드시 WHERE 절이 다 끝난 맨 뒤에 붙여야 합니다.
   query += ` ORDER BY date_send DESC`; 
   
   try {
     const result = await pool.query(query, params);
+    
+    // 🔥 상자를 2개로 완전히 분리했습니다!
     const dungeons = {
-      '브리레흐': { count: 0, recent: [], color: 'blue' },
+      '브리레흐 (1~3관)': { count: 0, recent: [], color: 'blue' },
+      '브리레흐 (4관)': { count: 0, recent: [], color: 'bri4' },
       '크롬바스': { count: 0, recent: [], color: 'red' },
       '글렌베르나': { count: 0, recent: [], color: 'teal' },
       '몽환의 라비': { count: 0, recent: [], color: 'purple' },
@@ -373,9 +375,10 @@ app.get('/api/stats/party', async (req, res) => {
       let key = '기타';
       const msg = r.message;
       
-      if (/브리|브리레흐|1-3관|1~3관|1-3|1~3/.test(msg)) key = '브리레흐 1-3관';
-      else if (/4관/.test(msg)) key = '브리레흐 4관';
-      else if (/크롬|크롬바스|빠스|크일|크쉬/.test(msg)) key = '크롬바스';
+      // 🔥 4관을 먼저 빼내어 독립시키고, 나머지를 1~3관으로 모읍니다.
+      if (/4관/.test(msg)) key = '브리레흐 (4관)';
+      else if (/브리|브레|1[~-]3관?/.test(msg)) key = '브리레흐 (1~3관)';
+      else if (/크롬|크일|크쉬|빠스/.test(msg)) key = '크롬바스';
       else if (/글렌|글매|글렴|글쉬/.test(msg)) key = '글렌베르나';
       else if (/몽라|몽몽라|몽환/.test(msg)) key = '몽환의 라비';
       else if (/필발|왕복|필리아|코르|발레스|켈발|항교|교역/.test(msg)) key = '교역';
