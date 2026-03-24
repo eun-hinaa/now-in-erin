@@ -265,11 +265,6 @@ app.get('/api/stats/guilds', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-    const guilds = Object.values(guildMap).sort((a, b) => b.messages.length - a.messages.length).slice(0, 20);
-    res.json({ total: rows.length, guilds, raw: rows.slice(0, 50) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 async function generateDailySummary() {
   console.log('🌙 요약 작업 시작: 오늘의 에린 요약지 생성');
   const yesterday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
