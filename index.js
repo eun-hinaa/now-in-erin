@@ -59,7 +59,12 @@ function normalizeWord(w) { return NORMALIZE_MAP[w] || w; }
 
 async function fetchServer(serverName) {
   try {
-    const url = `https://open.api.nexon.com/mabinogi/v1/horn-bugle-world/history?server_name=${encodeURIComponent(serverName)}`;
+    // 🔥 KST 기준 '오늘' 날짜를 명시적으로 계산 (넥슨이 영국 시간 기준으로 어제 데이터를 주는 현상 완벽 방지)
+    const nowKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const dateStr = `${nowKST.getFullYear()}-${String(nowKST.getMonth() + 1).padStart(2, '0')}-${String(nowKST.getDate()).padStart(2, '0')}`;
+    
+    // 🔥 URL에 &date=오늘날짜 를 억지로 꽂아넣어 최신 데이터를 강제로 받아옵니다.
+    const url = `https://open.api.nexon.com/mabinogi/v1/horn-bugle-world/history?server_name=${encodeURIComponent(serverName)}&date=${dateStr}`;
     const res = await fetch(url, { headers: { 'x-nxopen-api-key': API_KEY } });
 
     if (!res.ok) {
