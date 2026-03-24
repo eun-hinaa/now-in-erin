@@ -52,7 +52,7 @@ const NORMALIZE_MAP = {
   '글렌': '글렌일반', '글매': '글렌일반', '글쉬': '글렌쉬움', '풀팟': '풀파티'
 };
 
-const STOP_WORDS = new Set(['이','가','은','는','을','를','에','의','도','합니다','모집','구합니다','팔아요','사요']);
+const STOP_WORDS = new Set(['이','가','은','는','을','를','에','의','도','합니다','모집','구합니다']);
 
 function normalizeWord(w) { return NORMALIZE_MAP[w] || w; }
 
@@ -96,6 +96,7 @@ async function fetchAll() {
   }
 }
 
+// ── API 엔드포인트 생략 (기존 코드와 동일하게 유지) ──
 app.get('/api/feed', async (req, res) => {
   const limit = parseInt(req.query.limit) || 100;
   const { category, keyword, server, offset } = req.query;
@@ -162,18 +163,33 @@ app.get('/api/stats/daily', async (req, res) => {
 app.get('/api/stats/hall-of-fame', async (req, res) => {
   const server = req.query.server;
   let query = `
-    SELECT horn_king_name as name, server_name, COUNT(*) as win_count, SUM(horn_king_count) as total_horns
+    SELECT 
+      horn_king_name as name, 
+      server_name, 
+      COUNT(*) as win_count, 
+      SUM(horn_king_count) as total_horns
     FROM daily_summary
     WHERE horn_king_name != '없음' AND horn_king_name IS NOT NULL
   `;
   const params = [];
-  if (server && server !== 'all') { params.push(server); query += ` AND server_name = $1`; }
-  query += ` GROUP BY horn_king_name, server_name ORDER BY win_count DESC, total_horns DESC LIMIT 10`;
+
+  if (server && server !== 'all') {
+    params.push(server);
+    query += ` AND server_name = $1`;
+  }
+
+  query += `
+    GROUP BY horn_king_name, server_name
+    ORDER BY win_count DESC, total_horns DESC
+    LIMIT 10
+  `;
 
   try {
     const result = await pool.query(query, params);
     res.json(result.rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.get('/api/stats/horn-king', async (req, res) => {
@@ -190,77 +206,6 @@ app.get('/api/stats/horn-king', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── 🔥 복구된 키워드 통계 API (필터링 강화) ──
-app.get('/api/stats/keywords', async (req, res) => {
-  const { server, category, days } = req.query;
-  const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
-  let query = `SELECT character_name, message FROM horn WHERE date_send >= $1`;
-  const params = [since];
-  if (server && server !== 'all') { params.push(server); query += ` AND server_name = $${params.length}`; }
-  if (category && category !== 'all') { params.push(category); query += ` AND category = $${params.length}`; }
-  
-  try {
-    const result = await pool.query(query, params);
-    const nicknames = new Set(result.rows.map(r => r.character_name));
-    const freq = {};
-    
-    result.rows.forEach(r => {
-      const words = r.message.split(/[\s\[\]\(\)#:,.!?~ㅋㅎ/\\]+/).filter(w => w.length >= 2);
-      words.forEach(w => {
-        // 닉네임, 기본 불용어 필터링
-        if (nicknames.has(w) || STOP_WORDS.has(w)) return;
-        // '팝니다', '삽니다', '채널', 순수 숫자, 숫자+(명/인/채/릴) 등 필터링
-        if (w.includes('팝니다') || w.includes('삽니다') || w.includes('채널') || /^\d+$/.test(w) || /^\d+(명|인|채|릴|팟|숲|골)$/.test(w)) return;
-        
-        freq[w] = (freq[w] || 0) + 1;
-      });
-    });
-    res.json({ keywords: Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, 20).map(([word, count]) => ({ word, count })) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── 🔥 복구된 파티 모집 현황 API (교역 추가, 시간 데이터 포함) ──
-app.get('/api/stats/party', async (req, res) => {
-  const { server, days } = req.query;
-  const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
-  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND date_send >= $1 ORDER BY date_send DESC`;
-  const params = [since];
-  if (server && server !== 'all') { params.push(server); query += ` AND server_name = $${params.length}`; }
-  
-  try {
-    const result = await pool.query(query, params);
-    const dungeons = {
-      '브리레흐': { count: 0, recent: [], color: 'blue' },
-      '크롬바스': { count: 0, recent: [], color: 'red' },
-      '글렌베르나': { count: 0, recent: [], color: 'teal' },
-      '몽환의 라비': { count: 0, recent: [], color: 'purple' },
-      '교역': { count: 0, recent: [], color: 'gold' }, // 교역 추가
-      '기타': { count: 0, recent: [], color: 'etc' }
-    };
-    const memberPatterns = {};
-    
-    result.rows.forEach(r => {
-      let key = '기타';
-      if (/브리|브레/.test(r.message)) key = '브리레흐';
-      else if (/크롬|크일|크쉬/.test(r.message)) key = '크롬바스';
-      else if (/글렌|글매|글쉬/.test(r.message)) key = '글렌베르나';
-      else if (/몽라|몽환/.test(r.message)) key = '몽환의 라비';
-      else if (/필-발|왕복|필리아|코르|발레스|켈-발/.test(r.message)) key = '교역'; // 교역 조건식 추가
-      
-      dungeons[key].count++;
-      if (dungeons[key].recent.length < 3) {
-        dungeons[key].recent.push({ message: r.message, date: r.date_send });
-      }
-
-      const m = r.message.match(/([0-9])\/([0-9])/);
-      if (m) {
-        const p = `${m[1]} / ${m[2]}`;
-        memberPatterns[p] = (memberPatterns[p] || 0) + 1;
-      }
-    });
-    res.json({ total: result.rows.length, dungeons: Object.entries(dungeons).map(([name, info]) => ({ name, ...info })), memberPatterns });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 // 길드원 모집 현황
 app.get('/api/stats/guilds', async (req, res) => {
@@ -286,12 +231,22 @@ app.get('/api/stats/guilds', async (req, res) => {
       const match = r.message.match(/[\[\(【<「『](.*?)[\]\)】>」』]/) || r.message.match(/([가-힣a-zA-Z0-9]{2,10})\s*길드/);
       const guildName = match ? match[1].replace(/채널\d+/, '').trim() : null;
 
+      // 🔥 채널 번호 자동 추출 로직 추가
+      const chMatch = r.message.match(/([0-9]+)\s*(?:채|ch)/i);
+      const channel = chMatch ? chMatch[1] + '채널' : '채널 미상';
+
       if (guildName && guildName.length >= 2 && !/^\d+$/.test(guildName)) {
         if (!guildMap[guildName]) {
           guildMap[guildName] = { name: guildName, messages: [], server: r.server_name };
         }
         if (guildMap[guildName].messages.length < 3) {
-          guildMap[guildName].messages.push(r.message);
+          // 닉네임과 채널 데이터를 배열에 함께 저장
+          guildMap[guildName].messages.push({
+            text: r.message,
+            character: r.character_name,
+            channel: channel,
+            date: r.date_send
+          });
         }
       }
     });
@@ -333,12 +288,82 @@ app.get('/api/admin/force-summary', async (req, res) => {
   res.send('✅ 어제 데이터 강제 정산 완료! 새로고침 해보세요.');
 });
 
+// ── 키워드 트렌드 통계 API ──
+app.get('/api/stats/keywords', async (req, res) => {
+  const { server, category, days } = req.query;
+  const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
+  let query = `SELECT character_name, message FROM horn WHERE date_send >= $1`;
+  const params = [since];
+  if (server && server !== 'all') { params.push(server); query += ` AND server_name = $${params.length}`; }
+  if (category && category !== 'all') { params.push(category); query += ` AND category = $${params.length}`; }
+  
+  try {
+    const result = await pool.query(query, params);
+    const nicknames = new Set(result.rows.map(r => r.character_name));
+    const freq = {};
+    result.rows.forEach(r => {
+      const words = r.message.split(/[\s\[\]\(\)#:,.!?~ㅋㅎ/\\]+/).filter(w => w.length >= 2);
+      words.forEach(w => { if (!nicknames.has(w)) freq[w] = (freq[w] || 0) + 1; });
+    });
+    res.json({ keywords: Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, 20).map(([word, count]) => ({ word, count })) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── 🔥 복구된 파티 모집 현황 API (교역 추가, 시간 데이터 포함) ──
+app.get('/api/stats/party', async (req, res) => {
+  const { server, days } = req.query;
+  const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
+  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND date_send >= $1 ORDER BY date_send DESC`;
+  const params = [since];
+  if (server && server !== 'all') { params.push(server); query += ` AND server_name = $${params.length}`; }
+  
+  try {
+    const result = await pool.query(query, params);
+    const dungeons = {
+      '브리레흐': { count: 0, recent: [], color: 'blue' },
+      '크롬바스': { count: 0, recent: [], color: 'red' },
+      '글렌베르나': { count: 0, recent: [], color: 'teal' },
+      '몽환의 라비': { count: 0, recent: [], color: 'purple' },
+      '교역': { count: 0, recent: [], color: 'gold' }, // 교역 추가
+      '기타': { count: 0, recent: [], color: 'etc' }
+    };
+    const memberPatterns = {};
+    
+    result.rows.forEach(r => {
+      let key = '기타';
+      if (/브리|브레/.test(r.message)) key = '브리레흐';
+      else if (/크롬|크일|크쉬/.test(r.message)) key = '크롬바스';
+      else if (/글렌|글매|글쉬/.test(r.message)) key = '글렌베르나';
+      else if (/몽라|몽환/.test(r.message)) key = '몽환의 라비';
+      else if (/필-발|왕복|필리아|코르|발레스|켈-발|항교|교역/.test(r.message)) key = '교역'; // 교역 조건식 추가
+      
+      dungeons[key].count++;
+      if (dungeons[key].recent.length < 3) {
+        dungeons[key].recent.push({ message: r.message, date: r.date_send });
+      }
+
+      const m = r.message.match(/([0-9])\/([0-9])/);
+      if (m) {
+        const p = `${m[1]} / ${m[2]}`;
+        memberPatterns[p] = (memberPatterns[p] || 0) + 1;
+      }
+    });
+    res.json({ total: result.rows.length, dungeons: Object.entries(dungeons).map(([name, info]) => ({ name, ...info })), memberPatterns });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── (여기서부터 복사) ───
+
+// 닉네임 검색 (아까 날아간 기본 검색 기능 복구)
 app.get('/api/user/:name', async (req, res) => {
   const name = req.params.name;
   try {
     const result = await pool.query(`
       SELECT server_name, message, date_send, category
-      FROM horn WHERE character_name = $1 ORDER BY date_send DESC LIMIT 200
+      FROM horn
+      WHERE character_name = $1
+      ORDER BY date_send DESC
+      LIMIT 200
     `, [name]);
 
     const rows = result.rows;
@@ -363,9 +388,12 @@ app.get('/api/user/:name', async (req, res) => {
       found: true, name, total, servers, categories, hourMap, peakHour, recentMessages,
       oldest: rows[rows.length - 1].date_send, newest: rows[0].date_send,
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
+// AI 분석 (메타데이터 + 고인물 프롬프트 적용된 매운맛 버전)
 app.get('/api/user/:name/analyze', async (req, res) => {
   const name = req.params.name;
   if (!genAI) return res.status(500).json({ error: 'Gemini API 키가 없어요' });
@@ -373,7 +401,10 @@ app.get('/api/user/:name/analyze', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT message, category, date_send, server_name 
-      FROM horn WHERE character_name = $1 ORDER BY date_send DESC LIMIT 100
+      FROM horn
+      WHERE character_name = $1 
+      ORDER BY date_send DESC 
+      LIMIT 100
     `, [name]);
 
     const rows = result.rows;
@@ -448,12 +479,14 @@ ${messages}
   }
 });
 
+//
+
 async function start() {
   await initDB();
   app.listen(PORT, () => { console.log(`\n🎺 백엔드 서버 시작 (포트: ${PORT})`); fetchAll(); });
   cron.schedule('0 0 * * *', generateDailySummary, { timezone: "Asia/Seoul" });
   
-  // 🔥 429 방지용 60초 주기
-  setInterval(() => { fetchAll().catch(console.error); }, 100000); // 100초
+  // 🔥 429 방지용 60초 주기 (매우 중요)
+  setInterval(() => { fetchAll().catch(console.error); }, 100000); // 100초 = 하루 약 864회 × 4서버 
 }
 start().catch(console.error);

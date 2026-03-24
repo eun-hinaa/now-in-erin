@@ -1941,7 +1941,6 @@
       const list = document.getElementById('guild-list');
 
       if (!data.guilds || data.guilds.length === 0) {
-        // 파싱된 길드명이 없으면 raw 메시지 목록 표시
         if (data.raw && data.raw.length > 0) {
           list.innerHTML = data.raw.map(r => `
             <div class="guild-card">
@@ -1953,10 +1952,22 @@
           list.innerHTML = '<div class="placeholder" style="height:120px"><span>현재 길드원 모집 중인 곳이 없어요</span></div>';
         }
       } else {
+        // 🔥 길드 탭: 닉네임, 채널, 시간, 전체 텍스트 모두 예쁘게 표시
         list.innerHTML = data.guilds.map(g => `
           <div class="guild-card">
-            <div class="guild-name">🏰 ${g.name} <span class="badge badge-server">${g.server}</span></div>
-            ${g.messages.map(m => `<div class="guild-msg">📯 ${m}</div>`).join('')}
+            <div class="guild-name">🏰 [${g.name}] <span class="badge badge-server">${g.server}</span></div>
+            ${g.messages.map(m => {
+              const timeStr = new Date(m.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+              return `
+                <div class="guild-msg" style="white-space: normal; height: auto; padding: 12px 0;">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:11px;">
+                    <span style="font-weight:700; color:var(--gold2);">👤 ${m.character}</span>
+                    <span style="color:var(--text3); font-family:'JetBrains Mono', monospace;">📡 ${m.channel} · ⏰ ${timeStr}</span>
+                  </div>
+                  <div style="font-size:13px; color:var(--text); line-height:1.5; word-break:break-all;">${m.text}</div>
+                </div>
+              `;
+            }).join('')}
           </div>
         `).join('');
       }
