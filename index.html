@@ -735,22 +735,25 @@
 
     /* 🔥 로고와 서브타이틀을 묶어주는 래퍼 */
     .landing-title-wrapper {
-      display: flex;
+      display: inline-flex; 
       flex-direction: column;
-      align-items: center;
-      margin-bottom: 20px;
+      align-items: stretch; /* 서브타이틀이 양끝으로 늘어나게 만듦 */
+      margin: 0 auto 10px auto;
     }
 
-    /* 🔥 NOW IN ERIN (영문 서브타이틀) */
+    /* 🔥 NOW IN ERIN (양끝 정렬) */
     .landing-subtitle {
       font-family: 'JetBrains Mono', sans-serif;
-      font-size: 13px;
-      font-weight: 800;
-      color: #b8860b; /* 고급스러운 황금색 */
-      letter-spacing: 0.6em; /* 글자 간격을 쫙 벌려서 아래 타이틀이랑 길이를 맞춤 */
-      margin-bottom: -5px; /* 아래 타이틀이랑 살짝 겹치게 밀착 */
-      opacity: 0.9;
-      transform: translateX(0.3em); /* letter-spacing 때문에 우측으로 치우치는 현상 완벽 보정 */
+      font-size: 15px;
+      font-weight: 900;
+      color: #fbcfe8;
+      display: flex;
+      justify-content: space-between; /* ⭐️ 단어들을 양끝으로 쫙 찢어주는 마법 ⭐️ */
+      margin-bottom: -15px; 
+      z-index: 2;
+      text-shadow: 2px 2px 0px #7c3aed;
+      transform: rotate(-3deg);
+      padding: 0 5px;
     }
 
     /* 🔥 NOW IN ERIN (영문 서브타이틀) - 팝업 감성 */
@@ -766,25 +769,18 @@
       transform: rotate(-3deg) translateX(10px); /* 삐딱하게 기울여서 힙하게 */
     }
 
-    /* 🔥 지금 에린에서는 (메인 타이틀) - 웹툰 타이틀 스타일 */
+   /* 🔥 지금 에린에서는 (메인) */
     .landing-title {
-      font-family: 'Noto Sans KR', sans-serif; /* 둥글고 두꺼운 폰트 */
+      font-family: 'Noto Sans KR', sans-serif;
       font-size: 64px;
       font-weight: 900;
-      letter-spacing: -0.05em; /* 자간을 좁혀서 쫀득하게 */
-      color: #ffffff; /* 글자 자체는 하얗게 */
-      
-      /* 🔥 핵심: 두꺼운 외곽선 + 단단한 솔리드 그림자 (버튜버 로고 특징) */
+      letter-spacing: -0.05em;
+      color: #ffffff;
       text-shadow: 
-        -3px -3px 0 #7c3aed,  /* 1겹: 보라색 두꺼운 외곽선 */
-         3px -3px 0 #7c3aed,
-        -3px  3px 0 #7c3aed,
-         3px  3px 0 #7c3aed,
-         0px  8px 0 #4c1d95,  /* 2겹: 아래로 깔리는 진보라색 입체감 */
-         4px 12px 15px rgba(0,0,0,0.2); /* 3겹: 은은한 배경 그림자 */
-         
-      transform: rotate(-3deg); /* 서브타이틀이랑 같이 살짝 기울임 */
-      margin-bottom: 24px;
+        -3px -3px 0 #7c3aed,  3px -3px 0 #7c3aed, -3px 3px 0 #7c3aed, 3px 3px 0 #7c3aed,
+         0px  8px 0 #4c1d95,  4px 12px 15px rgba(0,0,0,0.2); 
+      transform: rotate(-3deg);
+      margin: 0;
     }
 
     .landing-sub {
@@ -1172,16 +1168,16 @@
   <div class="landing-bg"></div>
   <div class="landing-content">
       <div class="landing-title-wrapper">
-        <div class="landing-subtitle">NOW IN ERIN</div>
-        
-        <div class="landing-title">지금 에린에서는</div>
-        
+        <div class="landing-subtitle">
+          <span>NOW</span>
+          <span>IN</span>
+          <span>ERIN</span>
         </div>
-
-      <div style="color:var(--text2); font-size:15px; margin-bottom:40px; ...
-    <div class="landing-title">지금 에린에서는</div>
-    <div class="landing-sub">// 거대한 외침의 뿔피리 실시간 분석</div>
-    <div class="landing-question">어느 서버를 플레이하시나요?</div>
+        <div class="landing-title">지금 에린에서는</div>
+      </div>
+      
+      <div class="landing-sub">// 거대한 외침의 뿔피리 실시간 분석</div>
+      <div class="landing-question">어느 서버를 플레이하시나요?</div>
     <div class="server-btn-grid">
       <div class="server-btn" onclick="selectServer('류트')">
         <div class="server-btn-name">류트</div>
