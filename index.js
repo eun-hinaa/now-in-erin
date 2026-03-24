@@ -292,6 +292,66 @@ app.get('/api/admin/force-summary', async (req, res) => {
   res.send('✅ 어제 데이터 강제 정산 완료! 새로고침 해보세요.');
 });
 
+// ── 키워드 트렌드 통계 API ──
+app.get('/api/stats/keywords', async (req, res) => {
+  const { server, category, days } = req.query;
+  const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
+  let query = `SELECT character_name, message FROM horn WHERE date_send >= $1`;
+  const params = [since];
+  if (server && server !== 'all') { params.push(server); query += ` AND server_name = $${params.length}`; }
+  if (category && category !== 'all') { params.push(category); query += ` AND category = $${params.length}`; }
+  
+  try {
+    const result = await pool.query(query, params);
+    const nicknames = new Set(result.rows.map(r => r.character_name));
+    const freq = {};
+    result.rows.forEach(r => {
+      const words = r.message.split(/[\s\[\]\(\)#:,.!?~ㅋㅎ/\\]+/).filter(w => w.length >= 2);
+      words.forEach(w => { if (!nicknames.has(w)) freq[w] = (freq[w] || 0) + 1; });
+    });
+    res.json({ keywords: Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, 20).map(([word, count]) => ({ word, count })) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── 파티 모집 현황 API ──
+app.get('/api/stats/party', async (req, res) => {
+  const { server, days } = req.query;
+  const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
+  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND date_send >= $1`;
+  const params = [since];
+  if (server && server !== 'all') { params.push(server); query += ` AND server_name = $${params.length}`; }
+  
+  try {
+    const result = await pool.query(query, params);
+    const dungeons = {
+      '브리레흐': { count: 0, recent: [], color: 'blue' },
+      '크롬바스': { count: 0, recent: [], color: 'red' },
+      '글렌베르나': { count: 0, recent: [], color: 'teal' },
+      '몽환의 라비': { count: 0, recent: [], color: 'purple' },
+      '기타': { count: 0, recent: [], color: 'etc' }
+    };
+    const memberPatterns = {};
+    
+    result.rows.forEach(r => {
+      let key = '기타';
+      if (/브리|브레/.test(r.message)) key = '브리레흐';
+      else if (/크롬|크일|크쉬/.test(r.message)) key = '크롬바스';
+      else if (/글렌|글매|글쉬/.test(r.message)) key = '글렌베르나';
+      else if (/몽라|몽환/.test(r.message)) key = '몽환의 라비';
+      
+      dungeons[key].count++;
+      if (dungeons[key].recent.length < 3) dungeons[key].recent.push({ message: r.message });
+
+      const m = r.message.match(/([0-9])\/([0-9])/);
+      if (m) {
+        const p = `${m[1]} / ${m[2]}`;
+        memberPatterns[p] = (memberPatterns[p] || 0) + 1;
+      }
+    });
+    res.json({ total: result.rows.length, dungeons: Object.entries(dungeons).map(([name, info]) => ({ name, ...info })), memberPatterns });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── (여기서부터 복사) ───
 
 // 닉네임 검색 (아까 날아간 기본 검색 기능 복구)
