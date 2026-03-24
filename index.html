@@ -1403,11 +1403,21 @@
       <div class="page-title">거뿔 거래 시세</div>
       <div class="page-sub">// 뿔피리로 거래되는 아이템 실시간 호가창</div>
     </div>
-    <div class="keyword-controls">
-      <input class="filter-input" id="marketSearch" placeholder="🔍 아이템명 검색 (예: 붕마정, 고독한)..." oninput="filterMarket()" />
-      <button class="btn btn-primary" onclick="loadMarket()">↻ 새로고침</button>
-      <span class="keyword-status" id="marketStatus"></span>
+    <!-- 🔥 신규: 어둠의 거래소 (거불 시세) -->
+    <div class="section-title" style="margin-top: 10px;">🏴‍☠️ 어둠의 거래소 (거불/특수 거래 시세)</div>
+    <div class="two-col" style="margin-bottom: 24px;">
+      <div class="chart-section" style="margin-bottom: 0; padding: 16px;">
+        <div style="font-size:12px; color:var(--text3); margin-bottom:12px;">📈 최근 3일 시세 추이 (단위: 숲)</div>
+        <div class="chart-wrap-sm" id="blackMarketChartWrap" style="height: 160px;">
+          <div class="loading-row"><div class="spinner"></div> 거불 시세 추적 중...</div>
+        </div>
+      </div>
+      <div class="chart-section" style="margin-bottom: 0; padding: 16px; display:flex; flex-direction:column; gap:8px; overflow-y:auto; max-height:220px;" id="blackMarketCards">
+        <div class="loading-row"><div class="spinner"></div> 분석 중...</div>
+      </div>
     </div>
+    
+    <div class="section-title">📦 일반 경매장 미등록 거래 내역</div>
     <div class="market-list" id="marketList">
       <div class="loading-row"><div class="spinner"></div> 시세 데이터 분석 중...</div>
     </div>
@@ -2019,9 +2029,70 @@
       marketData = data.trades || [];
       renderMarket();
       document.getElementById('marketStatus').textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')} · ${marketData.length}건 발골 완료`;
-    } catch(e) {
-      document.getElementById('marketStatus').textContent = '서버 연결 실패';
+    } let blackMarketChart = null;
+
+  async function loadBlackMarket() {
+    const server = getServer();
+    try {
+      const res = await fetch(`${API}/api/stats/blackmarket?server=${server}`);
+      const data = await res.json();
+      
+      const chartWrap = document.getElementById('blackMarketChartWrap');
+      const cardsWrap = document.getElementById('blackMarketCards');
+      
+      if (Object.keys(data).length === 0) {
+        chartWrap.innerHTML = '<div class="empty-state">데이터가 부족합니다</div>';
+        cardsWrap.innerHTML = '<div class="empty-state">최근 거래 내역이 없습니다</div>';
+        return;
+      }
+
+      // 카드 UI 렌더링
+      cardsWrap.innerHTML = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).map(([name, info]) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface2); padding:12px 16px; border-radius:8px;">
+          <div style="font-weight:700; font-size:14px; color:var(--text);">${name}</div>
+          <div style="text-align:right;">
+            <div style="color:var(--gold); font-weight:900; font-family:'JetBrains Mono', monospace; font-size:16px;">${info.avg}숲</div>
+            <div style="font-size:10px; color:var(--text3);">최근 ${info.count}건 발견</div>
+          </div>
+        </div>
+      `).join('');
+
+      // 그래프 렌더링 (가장 데이터가 많은 상위 2개 아이템만 선별)
+      const topItems = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).slice(0, 2);
+      const colors = ['#dc2626', '#7c3aed']; // 빨강, 보라
+      
+      chartWrap.innerHTML = '<canvas id="blackMarketCanvas"></canvas>';
+      if (blackMarketChart) blackMarketChart.destroy();
+      
+      const datasets = topItems.map(([name, info], idx) => ({
+        label: name,
+        data: info.history.map(h => ({ x: new Date(h.time), y: h.price })),
+        borderColor: colors[idx],
+        backgroundColor: colors[idx],
+        borderWidth: 2,
+        pointRadius: 2,
+        tension: 0.3
+      }));
+
+      blackMarketChart = new Chart(document.getElementById('blackMarketCanvas'), {
+        type: 'line',
+        data: { datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: {size: 10} } } },
+          scales: {
+            x: { type: 'time', time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } }, ticks: { font: {size: 9} } },
+            y: { beginAtZero: false, ticks: { font: {size: 10} } }
+          }
+        }
+      });
+
+    } catch (e) {
+      console.error(e);
+      document.getElementById('blackMarketChartWrap').innerHTML = '<div class="empty-state">오류 발생</div>';
     }
+  }
   }
 
   function filterMarket() { renderMarket(); }

@@ -455,6 +455,73 @@ app.get('/api/stats/lobby-weather', async (req, res) => {
   }
 });
 
+// ── 🏴‍☠️ 거불/특수 거래 (어둠의 거래소) API ──
+app.get('/api/stats/blackmarket', async (req, res) => {
+  const server = req.query.server || 'all';
+  // 데이터가 적을 수 있으니 최근 3일치 스캔
+  const since = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(); 
+
+  let query = `SELECT message, date_send FROM horn WHERE date_send >= $1`;
+  const params = [since];
+  if (server !== 'all') { params.push(server); query += ` AND server_name = $${params.length}`; }
+
+  try {
+    const result = await pool.query(query, params);
+    
+    // 🔥 작가님 기획 아이템 5대장
+    const trends = {
+      '브리 구슬(뀨)': { prices: [] },
+      '인능상': { prices: [] },
+      '거불 인보포': { prices: [] },
+      '거불 시암': { prices: [] },
+      '수세공': { prices: [] }
+    };
+
+    result.rows.forEach(r => {
+      // 띄어쓰기 다 무시하고 검색하기 위해 공백 제거
+      const msg = r.message.replace(/\s+/g, ''); 
+
+      // 1. 브리 구슬 (뀨, 구구, 구슬구매, 거불구슬) + 뒤에 숫자(가격)
+      const beadMatch = msg.match(/(뀨|구구|구슬구매|거불구슬)(\d+)(숲|만)?/);
+      if (beadMatch) trends['브리 구슬(뀨)'].prices.push({ time: r.date_send, price: parseInt(beadMatch[2]) });
+
+      // 2. 인능상
+      const inMatch = msg.match(/(인능상|인챈트능력의상승스크롤)(\d+)(숲|만)?/);
+      if (inMatch) trends['인능상'].prices.push({ time: r.date_send, price: parseInt(inMatch[2]) });
+
+      // 3. 거불 인보포
+      const inboMatch = msg.match(/(거불인보포|인보포거불)(\d+)(숲|만)?/);
+      if (inboMatch) trends['거불 인보포'].prices.push({ time: r.date_send, price: parseInt(inboMatch[2]) });
+
+      // 4. 거불 시암
+      const siamMatch = msg.match(/(거불시암|시암거불)(\d+)(숲|만)?/);
+      if (siamMatch) trends['거불 시암'].prices.push({ time: r.date_send, price: parseInt(siamMatch[2]) });
+
+      // 5. 수세공 (수세공, 거불수세공)
+      const suseMatch = msg.match(/(거불수세공|수세공)(\d+)(숲|만)?/);
+      if (suseMatch) trends['수세공'].prices.push({ time: r.date_send, price: parseInt(suseMatch[2]) });
+    });
+
+    const summary = {};
+    for (const [item, data] of Object.entries(trends)) {
+      if (data.prices.length > 0) {
+        // 비정상적으로 높거나 낮은 가격(묶음 판매 등) 대충 걸러내기 (10000 초과 컷)
+        const validPrices = data.prices.filter(p => p.price > 0 && p.price < 10000);
+        if (validPrices.length > 0) {
+          // 시간순 정렬
+          validPrices.sort((a,b) => new Date(a.time) - new Date(b.time));
+          // 최근 평균가 계산 (마지막 5개 기준)
+          const recent = validPrices.slice(-5);
+          const avg = Math.round(recent.reduce((a, b) => a + b.price, 0) / recent.length);
+          
+          summary[item] = { avg, count: validPrices.length, history: validPrices };
+        }
+      }
+    }
+    res.json(summary);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── 💰 거뿔 시세 발골기 (Market API) ──
 app.get('/api/stats/market', async (req, res) => {
   const { server, days } = req.query;
@@ -635,6 +702,6 @@ async function start() {
   cron.schedule('0 0 * * *', generateDailySummary, { timezone: "Asia/Seoul" });
   
   // 🔥 429 방지용 60초 주기 (매우 중요)
-  setInterval(() => { fetchAll().catch(console.error); }, 100000); // 100초 = 하루 약 864회 × 4서버 
+  setInterval(() => { fetchAll().catch(console.error); }, 900000); // 100초 = 하루 약 864회 × 4서버 
 }
 start().catch(console.error);
