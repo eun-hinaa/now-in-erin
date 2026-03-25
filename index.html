@@ -1735,6 +1735,8 @@
   // ==========================================
   async function loadBlackMarket() {
     const server = getServer();
+    async function loadBlackMarket() {
+    const server = getServer();
     try {
       const res = await fetch(`${API}/api/stats/blackmarket?server=${server}`);
       const data = await res.json();
@@ -1746,26 +1748,46 @@
       }
 
       cardsWrap.innerHTML = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).map(([name, info]) => {
-        // 🔥 수정: 숨겨둘 상세 거뿔 내역 HTML 생성
-        const historyHtml = info.history.map(h => {
+        
+        const isAllServer = getServer() === 'all';
+        let serverAvgsHtml = '';
+        if (isAllServer && info.serverAvgs) {
+           serverAvgsHtml = `<div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">` + 
+             Object.entries(info.serverAvgs).map(([srv, avg]) => 
+               `<span style="background:var(--surface); border:1px solid var(--border2); padding:3px 8px; border-radius:6px; font-size:11px; color:var(--text2);">
+                  ${srv} <strong style="color:var(--gold2);">${avg.toLocaleString()}</strong>숲
+                </span>`
+             ).join('') + `</div>`;
+        }
+
+        const historyHtml = info.history.slice(0, 20).map(h => {
           const timeStr = new Date(h.time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-          return `<div style="font-size:12px; color:var(--text2); margin-top:6px; padding-top:6px; border-top:1px dashed var(--border);">
-            <span style="color:var(--gold2); font-weight:bold;">👤 ${h.character}</span> <span style="color:var(--text3); font-size:10px;">${timeStr}</span><br>
-            📯 ${h.message}
+          const charName = h.character || h.message.split(':')[0].trim() || '익명';
+          const serverBadge = h.server ? `<span class="badge badge-server" style="font-size:9px; padding:1px 5px; margin-left:4px;">${h.server}</span>` : '';
+          
+          return `<div style="font-size:12px; color:var(--text2); margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <div><span style="color:var(--gold2); font-weight:bold;">👤 ${charName}</span>${serverBadge}</div>
+              <span style="color:var(--text3); font-size:10px;">${timeStr}</span>
+            </div>
+            <div style="line-height:1.4; word-break:break-all;">📯 ${h.message}</div>
           </div>`;
         }).join('');
 
         return `
-        <div style="flex:1; min-width:280px; background:var(--surface2); border:1px solid var(--border); padding:12px 16px; border-radius:12px; cursor:pointer;" 
+        <div style="flex:1; min-width:320px; max-width:100%; background:var(--surface2); border:1px solid var(--border); padding:18px; border-radius:12px; cursor:pointer; display:flex; flex-direction:column;" 
              onclick="const el = this.querySelector('.bm-history'); el.style.display = el.style.display === 'none' ? 'block' : 'none'">
-          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-            <div style="font-weight:900; font-size:15px; color:var(--text);">🔎 ${name}</div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div style="font-weight:900; font-size:16px; color:var(--text);">🔎 ${name}</div>
+              ${serverAvgsHtml}
+            </div>
             <div style="text-align:right;">
-              <span style="color:var(--gold); font-weight:900; font-family:'JetBrains Mono', monospace; font-size:18px;">${info.avg}숲</span>
-              <span style="font-size:11px; color:var(--text3); margin-left:4px;">최근 ${info.count}건 ▼</span>
+              <div style="color:var(--gold); font-weight:900; font-family:'JetBrains Mono', monospace; font-size:20px;">${info.avg.toLocaleString()}숲</div>
+              <div style="font-size:11px; color:var(--text3); margin-top:4px;">최근 ${info.count}건 ▼</div>
             </div>
           </div>
-          <div class="bm-history" style="display:none; margin-top:8px;">
+          <div class="bm-history" style="display:none; margin-top:12px; max-height: 250px; overflow-y: auto; padding-right:8px;">
             ${historyHtml}
           </div>
         </div>`;
@@ -2441,7 +2463,9 @@
   }, 120000);
 
   async function updateLobbyData() {
+    const server = getServer();async function updateLobbyData() {
     const server = getServer();
+    
     fetch(`${API}/api/stats/keywords?server=${server}&days=1&category=all`)
       .then(r => r.json())
       .then(data => {
@@ -2465,7 +2489,6 @@
         `).join('') : '<div class="empty-state">파티 대기중</div>';
       });
 
-    // (찾기: fetch(`${API}/api/stats/horn-king`) 안쪽)
     fetch(`${API}/api/stats/horn-king`)
       .then(r => r.json())
       .then(data => {
@@ -2490,7 +2513,7 @@
       }).catch(() => {
         document.getElementById('lobbyWeather').innerHTML = `<div class="weather-icon">🌧️</div><div>마나 흐름이 불안정하여 날씨를 파악할 수 없습니다.</div>`;
       });
-  // 🔥 1. 로비 전용: 방금 올라온 거뿔 (독립 호출)
+
     fetch(`${API}/api/feed?server=${server}&limit=3`)
       .then(r => r.json())
       .then(data => {
@@ -2502,7 +2525,6 @@
         }
       });
 
-    // 🔥 2. 로비 전용: 가장 최근 호가창 (독립 호출 및 도배 압축)
     fetch(`${API}/api/stats/market?server=${server}&days=1`)
       .then(r => r.json())
       .then(data => {
@@ -2531,7 +2553,7 @@
         } else {
           lobbyMarket.innerHTML = '<div class="empty-state">최근 거래 내역이 없어요.</div>';
         }
-      });    
+      });
   }
 
   // 초기 실행
