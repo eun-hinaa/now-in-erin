@@ -501,8 +501,6 @@ app.get('/api/stats/blackmarket', async (req, res) => {
 
   try {
     const result = await pool.query(query, params);
-    
-    // 🔥 작가님 요청: 붕마정, 크롬 장기 추가!
     const trends = {
       '브리 구슬': { prices: [] },
       '붕마정': { prices: [] },
@@ -514,124 +512,147 @@ app.get('/api/stats/blackmarket', async (req, res) => {
       '인형가방 (떨굼)': { prices: [] }
     };
 
+    // 🔥 작가님 전용 기적의 수학법 (1.0 = 1억 = 10000숲 / 1550 = 1550숲)
     const parseSoop = (numStr, unit) => {
       let num = parseFloat(numStr);
       if (unit === '억') return num * 10000;
-      if (unit && unit.startsWith('천')) return num * 1000;
-      if (unit === '만') return num; 
-      if (unit === '숲') return num;
-      if (num < 20) return num * 10000; 
+      if (unit === '천만' || unit === '천') return num * 1000; 
+      if (unit === '만' || unit === '숲') return num; 
+      
+      // 단위 생략 시 추론: 10 미만은 '억'으로, 그 이상은 '숲'으로 간주
+      if (num < 10) return num * 10000; 
       return num; 
     };
 
     result.rows.forEach(r => {
       const msg = r.message.replace(/\s+/g, ''); 
-      // 🔥 undefined 방지: 서버 이름(server_name)을 확실하게 챙겨줍니다.
-      const itemData = { time: r.date_send, character: r.character_name, server: r.server_name, message: r.message };
+      const itemData = { 
+        time: r.date_send, 
+        character: r.character_name, 
+        server: r.server_name, 
+        message: r.message 
+      };
 
-      const beadMatch = msg.match(/(뀨|구구|구슬구매|거불구슬)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-      if (beadMatch) trends['브리 구슬'].prices.push({ ...itemData, price: parseSoop(beadMatch[2], beadMatch[3]) });
+      const extractMatch = (regex, itemName) => {
+        const match = msg.match(regex);
+        if (match) {
+          let price = parseSoop(match[2], match[3]);
 
-      // 🔥 붕마정 낚시망
-      const bungMatch = msg.match(/(붕마정|붕괴된마력의정수)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-      if (bungMatch) trends['붕마정'].prices.push({ ...itemData, price: parseSoop(bungMatch[2], bungMatch[3]) });
+          // 🔥 수세공 묶음 판매(100개, 400개 등) 개당 단가 보정 로직
+          if (itemName === '수세공' && price > 200) {
+            const commonQtys = [400, 100, 50, 10];
+            for (let q of commonQtys) {
+              let unitPrice = price / q;
+              if (unitPrice >= 30 && unitPrice <= 70) { 
+                price = unitPrice; 
+                break; 
+              }
+            }
+          }
+          trends[itemName].prices.push({ ...itemData, price: Math.round(price) });
+        }
+      };
 
-      // 🔥 크롬 장기 낚시망 (아다만티움, 글기깃, 글기심 등)
-      const janggiMatch = msg.match(/(아다만|아다만티움|글기깃|글기심|글라스기브넨의깃털|글라스기브넨의심장|장기)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-      if (janggiMatch) trends['크롬 장기'].prices.push({ ...itemData, price: parseSoop(janggiMatch[2], janggiMatch[3]) });
-
-      const inMatch = msg.match(/(인능상|인챈트능력의상승스크롤)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-      if (inMatch) trends['인능상'].prices.push({ ...itemData, price: parseSoop(inMatch[2], inMatch[3]) });
-
-      const inboMatch = msg.match(/(거불인보포|인보포거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-      if (inboMatch) trends['거불 인보포'].prices.push({ ...itemData, price: parseSoop(inboMatch[2], inboMatch[3]) });
-
-      const siamMatch = msg.match(/(거불시암|시암거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-      if (siamMatch) trends['거불 시암'].prices.push({ ...itemData, price: parseSoop(siamMatch[2], siamMatch[3]) });
-
-      const suseMatch = msg.match(/(거불수세공|수세공)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-      if (suseMatch) trends['수세공'].prices.push({ ...itemData, price: parseSoop(suseMatch[2], suseMatch[3]) });
+      extractMatch(/(뀨|구구|구슬구매|거불구슬)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '브리 구슬');
+      extractMatch(/(붕마정|붕괴된마력의정수)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '붕마정');
+      extractMatch(/(아다만|아다만티움|글기깃|글기심|장기)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '크롬 장기');
+      extractMatch(/(인능상|인챈트능력의상승스크롤)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '인능상');
+      extractMatch(/(거불인보포|인보포거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '거불 인보포');
+      extractMatch(/(거불시암|시암거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '거불 시암');
+      extractMatch(/(거불수세공|수세공)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '수세공');
 
       if (msg.includes('가방') && /떨굼|떨식|깐/.test(msg)) {
-        const bagMatch = msg.match(/([0-9]*\.?[0-9]+)(억|천만?|숲|만)?(에|으로)?(팝니다|삽니다|판매|구매|팜|삼|팔아요|사요|구함|구해)/);
-        if (bagMatch) {
-          let price = parseSoop(bagMatch[1], bagMatch[2]);
-          if (price >= 100 && price <= 50000) trends['인형가방 (떨굼)'].prices.push({ ...itemData, price });
-        }
+        const bagM = msg.match(/([0-9]*\.?[0-9]+)(억|천만?|숲|만)?(에|으로)?(팝니다|삽니다|판매|구매|팜|삼|팔아요|사요|구함|구해)/);
+        if (bagM) trends['인형가방 (떨굼)'].prices.push({ ...itemData, price: Math.round(parseSoop(bagM[1], bagM[2])) });
       }
     });
 
     const summary = {};
     for (const [item, data] of Object.entries(trends)) {
       if (data.prices.length > 0) {
-        // 비정상 가격 필터링 (10숲 ~ 10만숲)
-        const validPrices = data.prices.filter(p => p.price >= 10 && p.price <= 100000);
-        if (validPrices.length > 0) {
-          validPrices.sort((a,b) => new Date(a.time) - new Date(b.time));
-          
-          // 🔥 서버별 평균 계산 로직
-          const serverStats = {};
-          validPrices.forEach(p => {
-            if (!serverStats[p.server]) serverStats[p.server] = { sum: 0, count: 0 };
-            serverStats[p.server].sum += p.price;
-            serverStats[p.server].count++;
-          });
-          
-          const serverAvgs = {};
-          for (const [srv, stat] of Object.entries(serverStats)) {
-            serverAvgs[srv] = Math.round(stat.sum / stat.count);
-          }
+        // 🔥 통계적 이상치 제거 (IQR) - 묶음 판매/혐사 자동 필터
+        const sorted = [...data.prices].sort((a, b) => a.price - b.price);
+        const q1 = sorted[Math.floor(sorted.length * 0.25)].price;
+        const q3 = sorted[Math.floor(sorted.length * 0.75)].price;
+        let iqr = q3 - q1 || q3 * 0.5;
+        
+        let validPrices = data.prices.filter(p => p.price >= q1 - 1.5 * iqr && p.price <= q3 + 1.5 * iqr);
+        if (validPrices.length === 0) validPrices = data.prices;
 
-          const recent = validPrices.slice(-10); // 최근 10개 기준으로 대표 평균 산출
-          const avg = Math.round(recent.reduce((a, b) => a + b.price, 0) / recent.length);
-          
-          // history 데이터에 최신순 정렬을 위해 reverse 적용해서 보냄
-          summary[item] = { avg, count: validPrices.length, serverAvgs, history: validPrices.reverse() };
+        validPrices.sort((a,b) => new Date(a.time) - new Date(b.time));
+        
+        // 🔥 서버별 평균 계산 (정상 데이터 기반)
+        const serverStats = {};
+        validPrices.forEach(p => {
+          if (!serverStats[p.server]) serverStats[p.server] = { sum: 0, count: 0 };
+          serverStats[p.server].sum += p.price;
+          serverStats[p.server].count++;
+        });
+        
+        const serverAvgs = {};
+        for (const [srv, stat] of Object.entries(serverStats)) {
+          serverAvgs[srv] = Math.round(stat.sum / stat.count);
         }
+
+        const recent = validPrices.slice(-10);
+        const avg = Math.round(recent.reduce((a, b) => a + b.price, 0) / recent.length);
+        
+        summary[item] = { avg, count: validPrices.length, serverAvgs, history: validPrices.reverse() };
       }
     }
     res.json(summary);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── 💰 거뿔 시세 발골기 (Market API) ──
+// ── 💰 일반 거뿔 거래 시세 (Market API) ──
 app.get('/api/stats/market', async (req, res) => {
   const { server, days } = req.query;
   const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
   
-  // 🔥 기본 쿼리문
   let query = `SELECT server_name, character_name, message, date_send FROM horn WHERE category = 'trade' AND date_send >= $1`;
   const params = [since];
   
-  // 🔥 서버 조건이 있으면 먼저 붙여주기
   if (server && server !== 'all') { 
     params.push(server); 
     query += ` AND server_name = $${params.length}`; 
   }
   
-  // 🔥 정렬과 리밋은 무조건 맨 마지막에!
   query += ` ORDER BY date_send DESC LIMIT 500`;
   
   try {
     const result = await pool.query(query, params);
     const trades = [];
     
-    // 마비노기식 거래 정규표현식: [아이템] + [가격 숫자.숫자] + [억/숲/만/골드] + [팜/삼]
+    // 마비노기식 거래 정규표현식 개선
     const tradeRegex = /(.*?)\s+([0-9]+(?:\.[0-9]+)?)\s*(억|숲|만|골드|수표)\s*(팝니다|삽니다|판매|구매|팜|삼|팔아요|사요)/;
 
     result.rows.forEach(r => {
       const match = r.message.match(tradeRegex);
       if (match) {
         let item = match[1].replace(/^[\[\(<【].*?[\]\)>】]/, '').replace(/[~!@#$^&*]/g, '').trim();
-        const price = parseFloat(match[2]);
+        const rawNum = match[2];
         const unit = match[3];
         const action = match[4].includes('사') || match[4].includes('구매') || match[4].includes('삼') ? '구매' : '판매';
         
+        // 🔥 일반 거래에서도 블랙마켓과 동일한 환산 로직 적용
+        const priceSoop = (numStr, unitStr) => {
+          let num = parseFloat(numStr);
+          if (unitStr === '억') return num * 10000;
+          if (unitStr === '만' || unitStr === '숲') return num;
+          if (num < 10) return num * 10000;
+          return num;
+        };
+
         if (item.length > 1) {
           trades.push({
-            server: r.server_name, character: r.character_name,
-            item: item, price: price, unit: unit, action: action,
-            time: r.date_send, original: r.message
+            server: r.server_name, 
+            character: r.character_name,
+            item: item, 
+            price: priceSoop(rawNum, unit), 
+            unit: '숲', 
+            action: action,
+            time: r.date_send, 
+            original: r.message
           });
         }
       }
