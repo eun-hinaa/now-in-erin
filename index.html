@@ -7,23 +7,52 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Nanum+Myeongjo:wght@400;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
+    /* 🌹 1. 기본 테마: 로즈 핑크 (다크 초코 배경 + 핑크 포인트) */
     :root {
+      --bg: #1a1a1c;
+      --surface: #242428;
+      --surface2: #2f2f35;
+      --border: #3f3f46;
+      --border2: #52525b;
+      
+      --gold: #d4a017;
+      --gold2: #b8860b;
+      --blue: #e63946;    /* 모든 포인트 컬러(파란색)를 핑크로 대체! */
+      --teal: #14b8a6;
+      --purple: #9d4edd;
+      --red: #e63946;
+      
+      --text: #f4f4f5;
+      --text2: #a1a1aa;
+      --text3: #71717a;
+      
+      --nav-bg: #141415;
+      --nav-h: 64px;
+    }
+
+    /* 🌙 2. 심야 테마: 딥 블랙 + 보라색 (로아앱 감성) */
+    [data-theme="midnight"] {
+      --bg: #0f0f11;
+      --surface: #1a1a1e;
+      --surface2: #24242a;
+      --border: #2e2e36;
+      --border2: #3f3f4a;
+      --blue: #9d4edd;    /* 포인트 컬러 보라색 */
+      --nav-bg: #0a0a0c;
+    }
+
+    /* ☀️ 3. 클래식 테마: 예전에 쓰던 밝은 버전 (눈 아플 때용) */
+    [data-theme="classic"] {
       --bg: #f4f6f9;
       --surface: #ffffff;
       --surface2: #eef0f5;
       --border: #dde1ea;
       --border2: #c4c9d8;
-      --gold: #b8860b;
-      --gold2: #d4a017;
-      --blue: #2563eb;
-      --teal: #0d9488;
-      --purple: #7c3aed;
-      --red: #dc2626;
+      --blue: #2563eb;    /* 원래 파란색 */
       --text: #1e2233;
       --text2: #4a5068;
       --text3: #9299b0;
-      --nav-bg: #1e2436;
-      --nav-h: 64px;
+      --nav-bg: #ffffff;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1245,6 +1274,11 @@
     <button class="nav-btn" id="nav-user" onclick="showPage('user')">🔍 유저 분석</button>
   </div>
   <div class="nav-right">
+    <select id="themeSelector" onchange="changeTheme()" style="margin-right: 12px; border-radius: 6px; padding: 4px 8px;">
+      <option value="rose">🌹 로즈 핑크 (기본)</option>
+      <option value="midnight">🌙 심야의 에린 (퍼플)</option>
+      <option value="classic">☀️ 클래식 (라이트)</option>
+    </select>
     <div style="display: flex; align-items: center; gap: 8px; margin-right: 12px;">
       <span style="font-size: 13px; color: var(--text2); font-weight: 700; cursor: pointer;" onclick="document.getElementById('ttsToggle').click()">🔊 파티 음성 알림</span>
       <label style="position: relative; display: inline-block; width: 36px; height: 20px;">
@@ -1538,6 +1572,13 @@
   let marketData = [];
   let isFirstLoad = true;
 
+  function changeTheme() {
+    const theme = document.getElementById('themeSelector').value;
+    // html 태그 전체에 '너는 이제 ooo 테마야' 라고 이름표를 붙여줍니다.
+    document.documentElement.setAttribute('data-theme', theme);
+    // 브라우저 기억 장치에 몰래 저장!
+    localStorage.setItem('erinTheme', theme);
+
   function selectServer(server) {
     document.getElementById('globalServer').value = server;
     document.getElementById('landingOverlay').classList.add('hidden');
@@ -1615,11 +1656,21 @@
 
 function toggleTts() {
     isTtsEnabled = document.getElementById('ttsToggle').checked;
-    // 켰을 때 잘 작동하는지 짧게 확인 음성!
-    if (isTtsEnabled && 'speechSynthesis' in window) {
-      const speech = new SpeechSynthesisUtterance("음성 알림을 켰습니다.");
-      speech.lang = 'ko-KR'; speech.rate = 1.15;
-      window.speechSynthesis.speak(speech);
+    
+    // 스위치를 켰을 때만 귀여운 소리 재생!
+    if (isTtsEnabled) {
+      // 1. 구글에서 기본으로 제공하는 작고 경쾌한 '뾱!' 소리 (일단 이걸로 테스트해 보세요!)
+      const audio = new Audio('https://actions.google.com/sounds/v1/ui/pop.ogg'); 
+      
+      /* 
+      💡 나중에 맘에 드는 예쁜 소리를 구하시면 아래처럼 바꾸시면 됩니다!
+      마비옛체 폰트 넣으셨던 것처럼, 귀여운 소리를 다운받아 ding.mp3 로 저장한 뒤 
+      const audio = new Audio('./ding.mp3'); 
+      이렇게 경로만 쏙 바꿔주시면 끝이에요! 
+      */
+
+      audio.volume = 0.4; // 소리가 너무 크면 깜짝 놀라니까 40% 볼륨으로 조절
+      audio.play().catch(e => console.log("소리 재생을 브라우저가 막았습니다."));
     }
   }
 
@@ -2497,6 +2548,11 @@ isFirstLoad = false;
   fetch(`${API}/api/stats/summary`)
     .then(() => setGlobalStatus('live', '연결됨'))
     .catch(() => setGlobalStatus('error', '서버 꺼짐'));
+
+    const savedTheme = localStorage.getItem('erinTheme') || 'rose'; // 저장된 거 없으면 로즈 핑크!
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('themeSelector').value = savedTheme;
+
 </script>
 <!-- 파티 알림 팝업 컨테이너 -->
 <div id="party-toast-container" style="position:fixed; top:80px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:10px; align-items:center; pointer-events:none;"></div>
