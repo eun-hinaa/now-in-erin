@@ -882,6 +882,6 @@ async function start() {
   cron.schedule('0 0 * * *', generateDailySummary, { timezone: "Asia/Seoul" });
   
   // 🔥 429 방지용 60초 주기 (매우 중요)
-  setInterval(() => { fetchAll().catch(console.error); }, 900000); // 100초 = 하루 약 864회 × 4서버 
+  setInterval(() => { fetchAll().catch(console.error); }, 60000); // 100초 = 하루 약 864회 × 4서버 
 }
 start().catch(console.error);
