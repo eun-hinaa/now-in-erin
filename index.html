@@ -16,26 +16,26 @@
     font-style: normal;
   }
     
-    /* 🌹 1. 기본 테마: 로즈 핑크 (다크 초코 배경 + 핑크 포인트) */
+    /* 🌹 1. 기본 테마: 로즈 핑크 (코코아 다크 + 화사한 핑크 포인트) */
     :root {
-      --bg: #251e20; /* 붉은빛이 도는 다크 초콜릿 배경 */
-      --surface: #302628; /* 살짝 밝은 초코 */
-      --surface2: #3d3134;
-      --border: #524246;
-      --border2: #6b575c;
+      --bg: #2b2124; /* 부드러운 코코아빛 다크 배경 */
+      --surface: #382b2f; /* 살짝 밝은 코코아 표면 */
+      --surface2: #4a3a3f;
+      --border: #5e4a50;
+      --border2: #755d64;
       
-      --gold: #d4a017;
-      --gold2: #b8860b;
-      --blue: #e63946;    /* 강렬한 로즈 핑크 */
-      --teal: #14b8a6;
-      --purple: #9d4edd;
-      --red: #e63946;
+      --gold: #f4a261;
+      --gold2: #e76f51;
+      --blue: #ff6b8b;    /* 쨍하고 화사한 찐 로즈 핑크 포인트! (버튼 색상 등) */
+      --teal: #2a9d8f;
+      --purple: #cdb4db;
+      --red: #ff4d6d;
       
-      --text: #fdf5f6; /* 살짝 핑크빛 도는 부드러운 하얀색 */
-      --text2: #d8c8cb; /* 인디핑크빛 회색 */
-      --text3: #a39396;
+      --text: #fff0f3; /* 핑크빛이 살짝 도는 부드러운 흰색 (메인 글씨) */
+      --text2: #ffb3c6; /* 연한 딸기우유색 (서브 글씨) */
+      --text3: #d5bdaf; /* 차분한 베이지 핑크 (덜 중요한 글씨) */
       
-      --nav-bg: #1c1517;
+      --nav-bg: #221a1c;
       --nav-h: 64px;
     }
 
@@ -192,6 +192,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      white-space: nowrap; 
+      flex-shrink: 0; 
     }
 
     .nav-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.08); }
@@ -238,17 +240,22 @@
       50% { box-shadow: 0 0 14px var(--teal); }
     }
 
-    /* ── 서버 선택 ── */
+    /* ── 서버 및 테마 선택 박스 (은신 해제!) ── */
     select {
-      background: var(--surface); /* 👈 배경색 변수로 변경 */
-      border: 1px solid var(--border); /* 👈 테두리 변수로 변경 */
+      background-color: var(--surface) !important; /* 테마 배경색 강제 적용 */
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 6px 10px;
-      color: var(--text); /* 👈 글씨색 변수로 변경! */
+      padding: 8px 12px;
+      color: var(--text) !important; /* 테마 글씨색 강제 적용! (이제 절대 안 숨음) */
       font-family: 'Noto Sans KR', sans-serif;
-      font-size: 12px;
+      font-size: 13px;
       outline: none;
       cursor: pointer;
+    }
+
+    select option {
+      background-color: var(--surface) !important;
+      color: var(--text) !important;
     }
 
     select option { background: var(--nav-bg); }
@@ -1248,7 +1255,7 @@
   
 
     /* 🍔 햄버거 메뉴 및 반응형 디자인 (맨 밑에서 기존 설정 덮어쓰기!) 🍔 */
-    @media (max-width: 1200px) {
+    @media (max-width: 1550px) {
       .hamburger-btn { 
         display: block !important; 
       }
@@ -1288,6 +1295,27 @@
         width: 100%; 
       }
     }
+
+    /* 폰트 전체 강제 적용!! (고집쟁이 버튼들 참교육) */
+    * {
+      font-family: 'MabiOld', 'Noto Sans KR', sans-serif !important;
+    }
+
+    /* 랜딩 페이지 배경 일렁임 (테마별 색상 맞춤) */
+    .landing-bg {
+      /* 테마의 표면 색상(surface)을 활용해서 은은하게 빛나게 수정 */
+      background: radial-gradient(ellipse at 50% 30%, var(--surface2) 0%, transparent 65%) !important;
+    }
+
+    /* 랜딩 페이지 메인 타이틀 (시퍼런 보라색 그림자 삭제!) */
+    .landing-title {
+      color: #ffffff !important;
+      /* 테두리 색상 변수를 활용해서 핑크/보라 테마에 맞게 그림자 색상 자동 변경 */
+      text-shadow: 
+        -3px -3px 0 var(--border2),  3px -3px 0 var(--border2), 
+        -3px 3px 0 var(--border2), 3px 3px 0 var(--border2),
+         0px  8px 0 var(--border),  4px 12px 15px rgba(0,0,0,0.4) !important; 
+    }
   </style>
 </head>
 <body>
@@ -1304,7 +1332,7 @@
         <div class="landing-title">지금 에린에서는</div>
       </div>
       
-      <div class="landing-sub">// 거대한 외침의 뿔피리 실시간 분석</div>
+      <div class="landing-sub">~ 거대한 외침의 뿔피리 실시간 분석 ~</div>
       <div class="landing-question">어느 서버를 플레이하시나요?</div>
     <div class="server-btn-grid">
       <div class="server-btn" onclick="selectServer('류트')">
@@ -1367,10 +1395,10 @@
       
       <select id="globalServer" onchange="onServerChange()">
         <option value="all">🌐 전체 서버</option>
-        <option value="lute">류트</option>
-        <option value="mandolin">만돌린</option>
-        <option value="harp">하프</option>
-        <option value="wolf">울프</option>
+        <option value="류트">류트</option>
+        <option value="만돌린">만돌린</option>
+        <option value="하프">하프</option>
+        <option value="울프">울프</option>
       </select>
     </div>
 
@@ -1638,6 +1666,18 @@
 </div>
 
 <script>
+// 💰 1만 숲 이상이면 알아서 '억/만 골드'로 바꿔주는 똑똑한 계산기!
+  function formatMabiPrice(price, unit) {
+    if (unit === '숲') {
+      if (price >= 10000) {
+        const uk = Math.floor(price / 10000); // 억 단위
+        const man = price % 10000; // 만 단위
+        return uk + '억' + (man > 0 ? ' ' + man.toLocaleString() + '만' : '') + ' 골드';
+      }
+    }
+    return price.toLocaleString() + (unit || '');
+  }
+
   let isTtsEnabled = false;
   const API = 'https://erin-server-production.up.railway.app';
   let feedInterval = null;
@@ -1791,6 +1831,7 @@ function toggleTts() {
     if (name === 'keywords') loadKeywords();
     if (name === 'party') loadParty();
     if (name === 'market') loadMarket();
+    if (name === 'feed') fetchFeed(); /* 👈 이 한 줄을 추가하면 탭 누를 때 무조건 거뿔을 땡겨옵니다! */
   }
 
   function onServerChange() {
@@ -2112,7 +2153,7 @@ isFirstLoad = false;
             ${timeListHtml}
           </div>
           <div class="market-price-col">
-            <div class="market-price">${t.price.toLocaleString()}${t.unit}</div>
+            <div class="market-price">${formatMabiPrice(t.price, t.unit)}</div>
             <div class="market-action">${isSell ? '팝니다' : '삽니다'}</div>
           </div>
         </div>`;
@@ -2347,7 +2388,10 @@ isFirstLoad = false;
 
   async function loadParty() {
     const server = getServer();
-    const days = document.getElementById('partyDaysFilter').value;
+    // HTML에서 날짜 필터가 삭제되었으니, 뻗지 않게 기본값 1일을 줍니다!
+    const filterEl = document.getElementById('partyDaysFilter');
+    const days = filterEl ? filterEl.value : '1'; 
+
     document.getElementById('partyStatus').textContent = '로딩 중...';
     try {
       const res = await fetch(`${API}/api/stats/party?server=${server}&days=${days}`);
@@ -2358,6 +2402,26 @@ isFirstLoad = false;
     } catch(e) {
       document.getElementById('partyStatus').textContent = '서버 연결 실패';
       setGlobalStatus('error','서버 오류');
+    }
+  }
+
+  // 잃어버렸던 시장 탭 로딩 함수 부활!
+  async function loadMarket() {
+    const server = getServer();
+    const statusEl = document.getElementById('marketStatus');
+    if (statusEl) statusEl.textContent = '로딩 중...';
+    
+    try {
+      if (typeof loadBlackMarket === 'function') loadBlackMarket(); // 거불 거래 로드
+      
+      const res = await fetch(`${API}/api/stats/market?server=${server}&days=1`);
+      const data = await res.json();
+      marketData = data.trades || []; // 데이터 저장
+      renderMarket(); // 화면에 그리기
+      
+      if (statusEl) statusEl.textContent = `갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
+    } catch(e) {
+      if (statusEl) statusEl.textContent = '서버 연결 실패';
     }
   }
 
@@ -2606,7 +2670,7 @@ isFirstLoad = false;
             <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-bottom:6px;">
               <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                 <span style="font-weight:700; font-size:13px; color:var(--text);">${t.item} ${badge}</span>
-                <span style="font-weight:900; font-family:'JetBrains Mono', monospace; font-size:14px; color:var(--${isSell ? 'blue' : 'red'});">${t.price.toLocaleString()}${t.unit} ${t.action}</span>
+                <span style="font-weight:900; font-family:'JetBrains Mono', monospace; font-size:14px; color:var(--${isSell ? 'blue' : 'red'});">${formatMabiPrice(t.price, t.unit)} ${t.action}</span>
               </div>
               <div style="font-size:11px; color:var(--text3);">👤 ${t.character}</div>
             </div>`;
