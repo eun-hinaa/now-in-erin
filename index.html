@@ -1787,6 +1787,7 @@
 
 function toggleTts() {
     const isEnabled = document.getElementById('ttsToggle').checked;
+    isTtsEnabled = isEnabled;
     
     if (isEnabled) {
       // 1. TTS (텍스트 읽어주기) 엔진 멱살 잡고 깨우기
