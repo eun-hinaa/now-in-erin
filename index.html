@@ -2025,7 +2025,6 @@ function toggleTts() {
       const loading = feed.querySelector('.loading-row'); 
       if (loading && !isLoadMore) loading.remove();
 
-      // 전체 서버인데 거뿔이 아예 없는 경우 방어!
       if (items.length === 0 && !isLoadMore) {
          feed.innerHTML = '<div class="empty-state">아직 올라온 거뿔이 없거나 서버가 너무 평화롭습니다!</div>';
       }
@@ -2043,8 +2042,7 @@ function toggleTts() {
           } else {
             feed.prepend(itemEl);
             
-            // 🚨 [추가된 부분] 새로 들어온 거뿔이 파티 모집이면 알림 쏘기! 🚨
-            // (!isFirstLoad: 사이트 처음 켰을 때 100개가 동시에 울리는 대참사 방지)
+            // 🚨 파티 알림 쏘기 로직! 🚨
             if (!isFirstLoad) {
               const msgType = classify(item.message);
               if (msgType === 'party') {
@@ -2052,13 +2050,14 @@ function toggleTts() {
               }
             }
           }
-      });
+        }
+      }); // 👈 보통 이 부분의 괄호가 꼬여서 에러가 납니다!
 
       isFirstLoad = false;
       const metaEl = document.getElementById('feedMeta');
       if (metaEl) metaEl.innerHTML = `총 <span>${feed.querySelectorAll('.feed-item').length}</span>개 표시 중`;
 
-      // 🚨 [추가] 로비 화면의 "방금 올라온 거뿔" 3개도 실시간으로 동기화 쏴주기! 🚨
+      // 🚨 로비 화면의 "방금 올라온 거뿔" 3개도 실시간으로 동기화 쏴주기! 🚨
       if (!isLoadMore) {
         const lobbyFeed = document.getElementById('lobbyFeed');
         if (lobbyFeed) {
@@ -2068,7 +2067,7 @@ function toggleTts() {
           }
         }
         
-        // 💡 F12 개발자 도구에서 23초마다 진짜로 엔진이 도는지 눈으로 확인하는 로그!
+        // 💡 F12 개발자 도구에서 진짜로 엔진이 도는지 눈으로 확인하는 로그!
         console.log(`[${new Date().toLocaleTimeString()}] 📯 거뿔 실시간 엔진 가동 완료! (새로 가져온 데이터 갱신)`);
       }
 
