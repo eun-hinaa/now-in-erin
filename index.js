@@ -883,89 +883,93 @@ app.get('/api/user/:name/similar', async (req, res) => {
   }
 });
 
-// 🚨 [과금 방어 모드] 지정한 목표치만 달성하면 알아서 스톱!
-let autoAnalyzerTimer = null;
-let processedCount = 0;
+// 🚨 [과금 방어 + 중복 완벽 차단] 릴레이 바통 터치 방식!
+let isRunning = false;
+let stopRequested = false;
 
 app.get('/api/admin/start-safe', async (req, res) => {
-  if (autoAnalyzerTimer) return res.send('<h2>✅ 이미 안전 모드로 작업 중입니다! (Logs 확인)</h2>');
+  if (isRunning) return res.send('<h2>✅ 이미 공장이 안전하게 돌아가고 있습니다!</h2>');
   
   const targetLimit = parseInt(req.query.limit) || 100;
-  processedCount = 0;
+  isRunning = true;
+  stopRequested = false;
+  let processedCount = 0;
   
-  res.send(`<h2>🛡️ 과금 철벽 방어! 딱 ${targetLimit}명만 깎고 전원을 뽑습니다.</h2><p>Tier 1의 속도(2초 간격)는 누리면서, 불량품 없이 깔끔하게 분석합니다!</p>`);
+  res.send(`<h2>🛡️ 철벽 방어 가동! 겹침 현상 없이 ${targetLimit}명 깎기 시작합니다.</h2><p>Railway Logs 탭에서 실시간 진행 상황을 확인하세요.</p>`);
 
-  autoAnalyzerTimer = setInterval(async () => {
-    if (processedCount >= targetLimit) {
-      console.log(`🎉 [안전 종료] 목표치 ${targetLimit}명 달성! 지갑 보호를 위해 공장 가동을 멈춥니다.`);
-      clearInterval(autoAnalyzerTimer);
-      autoAnalyzerTimer = null;
-      return;
-    }
+  // 🔥 무식한 타이머 대신, 한 명이 완벽히 끝날 때까지 기다려주는 while 루프 사용!
+  (async () => {
+    while (processedCount < targetLimit && !stopRequested) {
+      try {
+        // 1. 아직 분석 안 된 뉴페이스 1명 데려오기
+        const target = await pool.query(`
+          SELECT character_name 
+          FROM horn 
+          WHERE character_name NOT IN (SELECT character_name FROM user_analysis)
+          GROUP BY character_name 
+          ORDER BY COUNT(*) DESC 
+          LIMIT 1
+        `);
 
-    try {
-      const target = await pool.query(`
-        SELECT character_name 
-        FROM horn 
-        WHERE character_name NOT IN (SELECT character_name FROM user_analysis)
-        GROUP BY character_name 
-        ORDER BY COUNT(*) DESC 
-        LIMIT 1
-      `);
+        if (target.rows.length === 0) {
+          console.log('🎉 [종료] 에린의 모든 거뿔왕을 싹쓸이했습니다.');
+          break;
+        }
 
-      if (target.rows.length === 0) {
-        console.log('🎉 [종료] 더 이상 분석할 뉴페이스가 없습니다.');
-        clearInterval(autoAnalyzerTimer);
-        autoAnalyzerTimer = null;
-        return;
+        const name = target.rows[0].character_name;
+        const userMsgRes = await pool.query(`SELECT message FROM horn WHERE character_name = $1 ORDER BY date_send DESC LIMIT 50`, [name]);
+        const messages = userMsgRes.rows.map(r => r.message).join('\n');
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { responseMimeType: "application/json" } });
+        
+        const prompt = `너는 마비노기 유저 프로파일러야. 다음 JSON 형식의 "값(Value)" 부분을 너의 분석으로 채워서 답변해:
+        { 
+          "type": "유저에게 어울리는 센스있는 칭호 (예: 낭만 가득한 브리 레흐 요정)", 
+          "description": "유저의 플레이 성향에 대한 유쾌하고 상세한 분석 내용", 
+          "keywords": ["#밈해시태그1", "#밈해시태그2", "#밈해시태그3", "#밈해시태그4"], 
+          "activeTime": "주로 활동하는 시간대", 
+          "mainActivity": "주요 활동 내용" 
+        }
+        [🚨절대 규칙🚨] 
+        1. JSON의 key 값에 "칭호", "분석" 이라는 단어를 그대로 적지 마! 반드시 네가 창작한 내용을 적어.
+        2. 부정적 단어(빌런, 비매너 등) 절대 금지. 유쾌하고 둥글게 포장할 것. 
+        3. 본문 단어 단순 추출 금지. 대화 패턴으로 성향을 유추한 밈 해시태그(예: #새벽반, #자본주의)를 창작할 것.
+        [데이터]\n${messages}`;
+
+        // 2. 제미니가 대답할 때까지 차분하게 기다림 (await)
+        const aiResponse = await model.generateContent(prompt);
+        const analysis = JSON.parse(aiResponse.response.text());
+
+        // 3. DB 저장도 완벽하게 끝날 때까지 기다림 (덮어쓰기 ON)
+        await pool.query(`
+          INSERT INTO user_analysis (character_name, keywords, analysis_json, updated_at)
+          VALUES ($1, $2, $3, NOW())
+          ON CONFLICT (character_name) DO UPDATE 
+          SET keywords = EXCLUDED.keywords, analysis_json = EXCLUDED.analysis_json, updated_at = NOW()
+        `, [name, analysis.keywords, analysis]);
+        
+        processedCount++;
+        console.log(`🛡️ [안전 모드: ${processedCount}/${targetLimit}] ${name} 분석 완료!`);
+
+        // 4. 모든 작업이 '완벽하게' 끝난 뒤에만 딱 2초 휴식! (중복 에러 절대 안 남)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+      } catch (err) {
+        console.error(`💥 [API 삑사리 - 2초 뒤 다음 사람 진행]`, err.message);
+        await new Promise(resolve => setTimeout(resolve, 2000)); 
       }
-
-      const name = target.rows[0].character_name;
-      const userMsgRes = await pool.query(`SELECT message FROM horn WHERE character_name = $1 ORDER BY date_send DESC LIMIT 50`, [name]);
-      const messages = userMsgRes.rows.map(r => r.message).join('\n');
-
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { responseMimeType: "application/json" } });
-      
-      const prompt = `너는 마비노기 유저 프로파일러야. 다음 JSON 형식의 "값(Value)" 부분을 너의 분석으로 채워서 답변해:
-      
-      { 
-        "type": "유저에게 어울리는 센스있는 칭호 (예: 낭만 가득한 브리 레흐 요정)", 
-        "description": "유저의 플레이 성향에 대한 유쾌하고 상세한 분석 내용", 
-        "keywords": ["#밈해시태그1", "#밈해시태그2", "#밈해시태그3", "#밈해시태그4"], 
-        "activeTime": "주로 활동하는 시간대", 
-        "mainActivity": "주요 활동 내용" 
-      }
-
-      [🚨절대 규칙🚨] 
-      1. JSON의 key 값에 "칭호", "분석" 이라는 단어를 그대로 적지 마! 반드시 네가 창작한 내용을 적어.
-      2. 부정적 단어(빌런, 비매너 등) 절대 금지. 유쾌하고 둥글게 포장할 것. 
-      3. 본문 단어 단순 추출 금지. 대화 패턴으로 성향을 유추한 밈 해시태그(예: #새벽반, #자본주의)를 창작할 것.
-
-      [데이터]\n${messages}`;
-
-      const aiResponse = await model.generateContent(prompt);
-      const analysis = JSON.parse(aiResponse.response.text());
-
-      await pool.query(`
-        INSERT INTO user_analysis (character_name, keywords, analysis_json, updated_at)
-        VALUES ($1, $2, $3, NOW())
-      `, [name, analysis.keywords, analysis]);
-      
-      processedCount++;
-      console.log(`🛡️ [안전 모드: ${processedCount}/${targetLimit}] ${name} 분석 완료!`);
-
-    } catch (err) {
-      console.error(`💥 [API 삑사리 - 2초 뒤 재시도]`, err.message);
     }
-  }, 2000); 
+    
+    console.log(`🎉 [안전 종료] 공장 가동이 끝났습니다. (총 ${processedCount}명 처리 완료)`);
+    isRunning = false;
+  })();
 });
 
 // 수동 비상정지 버튼
 app.get('/api/admin/stop-safe', (req, res) => {
-  if (autoAnalyzerTimer) {
-    clearInterval(autoAnalyzerTimer);
-    autoAnalyzerTimer = null;
-    res.send('<h2>🛑 수동으로 안전 공장 가동을 중지했습니다.</h2>');
+  if (isRunning) {
+    stopRequested = true;
+    res.send('<h2>🛑 현재 작업 중인 1명만 마저 끝내고 공장을 정지합니다.</h2>');
   } else {
     res.send('<h2>🤷‍♂️ 공장이 이미 멈춰 있습니다.</h2>');
   }
