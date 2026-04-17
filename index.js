@@ -12,6 +12,9 @@ const app = express();
 // 1. 기본 보안 헬멧 쓰기 (해커들이 훔쳐보기 어렵게 만듦)
 app.use(helmet());
 
+// 🚨 [추가된 코드] Railway 같은 프록시 환경에서 진짜 IP를 인식하도록 설정!
+app.set('trust proxy', 1);
+
 // 2. CORS 엄격하게 설정 (내 깃허브 사이트에서만 서버에 말 걸 수 있게 철벽 방어!)
 app.use(cors({
   origin: ['https://eun-hinaa.github.io', 'http://localhost:3000'],
