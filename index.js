@@ -895,22 +895,88 @@ app.get('/api/user/:name/similar', async (req, res) => {
 // 🚨 [과금 방어 + 중복 완벽 차단] 릴레이 바통 터치 방식!
 let isRunning = false;
 let stopRequested = false;
+let currentProcessedCount = 0;
+let currentTargetLimit = 100;
 
 app.get('/api/admin/start-safe', async (req, res) => {
-  if (isRunning) return res.send('<h2>✅ 이미 공장이 안전하게 돌아가고 있습니다!</h2>');
+  const limitQuery = parseInt(req.query.limit);
+  if (limitQuery) currentTargetLimit = limitQuery;
+
+  // ✨ 관리자 전용 실시간 모니터링 대시보드 (HTML + 자동 갱신 스크립트)
+  const htmlResponse = `
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+      <meta charset="UTF-8">
+      <title>AI 분석 공장 가동 현황</title>
+      <style>
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background: #1e1e1e; color: #fff; padding: 40px; margin: 0; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .box { background: #2d2d2d; padding: 30px; border-radius: 12px; margin-bottom: 20px; border-left: 6px solid #f4a261; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h2 { color: #f4a261; margin-top: 0; font-size: 28px; }
+        p { color: #aaa; font-size: 16px; }
+        .stat { font-size: 22px; margin: 20px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .highlight { color: #2a9d8f; font-weight: 900; font-size: 32px; }
+        .server-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px; }
+        .server-box { background: #3d3d3d; padding: 20px; border-radius: 8px; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .server-name { color: #e9c46a; font-weight: bold; }
+      </style>
+      <script>
+        // 3초마다 DB 통계 현황을 가져와서 화면에 채워 넣습니다!
+        setInterval(async () => {
+          try {
+            const res = await fetch('/api/stats/progress');
+            const data = await res.json();
+            document.getElementById('total').innerText = data.total_horn_users.toLocaleString() + '명';
+            document.getElementById('analyzed').innerText = data.analyzed_total.toLocaleString() + '명';
+            document.getElementById('ryute').innerText = (data.server_users['류트'] || 0).toLocaleString() + '명';
+            document.getElementById('mando').innerText = (data.server_users['만돌린'] || 0).toLocaleString() + '명';
+            document.getElementById('harp').innerText = (data.server_users['하프'] || 0).toLocaleString() + '명';
+            document.getElementById('wolf').innerText = (data.server_users['울프'] || 0).toLocaleString() + '명';
+          } catch(e) {}
+        }, 3000);
+      </script>
+    </head>
+    <body>
+      <div class="container">
+        <div class="box">
+          <h2>🚀 AI 프로파일링 공장 가동 중... (목표: ${currentTargetLimit}명)</h2>
+          <p>창을 켜두시면 새로고침 없이 3초마다 아래 숫자가 실시간으로 올라갑니다!</p>
+        </div>
+        <div class="box" style="border-left-color: #2a9d8f;">
+          <div class="stat"><span>📢 에린 전체 거뿔 유저 수</span> <span id="total" class="highlight">로딩중...</span></div>
+          <div class="stat" style="border-bottom: none;"><span>✨ AI 분석 완료 유저 수</span> <span id="analyzed" class="highlight">로딩중...</span></div>
+        </div>
+        <div class="box" style="border-left-color: #e9c46a;">
+          <h3 style="margin-top:0; font-size: 22px; color: #e9c46a;">서버별 거뿔 유저 발굴 현황</h3>
+          <div class="server-list">
+            <div class="server-box"><span class="server-name">류트</span> <span id="ryute" class="highlight" style="font-size:24px;">0명</span></div>
+            <div class="server-box"><span class="server-name">만돌린</span> <span id="mando" class="highlight" style="font-size:24px;">0명</span></div>
+            <div class="server-box"><span class="server-name">하프</span> <span id="harp" class="highlight" style="font-size:24px;">0명</span></div>
+            <div class="server-box"><span class="server-name">울프</span> <span id="wolf" class="highlight" style="font-size:24px;">0명</span></div>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // 이미 돌고 있으면 대시보드 화면만 보여줌
+  if (isRunning) {
+    return res.send(htmlResponse);
+  }
   
-  const targetLimit = parseInt(req.query.limit) || 100;
   isRunning = true;
   stopRequested = false;
-  let processedCount = 0;
+  currentProcessedCount = 0;
   
-  res.send(`<h2>🛡️ 철벽 방어 가동! 겹침 현상 없이 ${targetLimit}명 깎기 시작합니다.</h2><p>Railway Logs 탭에서 실시간 진행 상황을 확인하세요.</p>`);
+  // 시작과 동시에 대시보드 화면 전송
+  res.send(htmlResponse);
 
-  // 🔥 무식한 타이머 대신, 한 명이 완벽히 끝날 때까지 기다려주는 while 루프 사용!
+  // 🔥 백그라운드 무한 분석 루프
   (async () => {
-    while (processedCount < targetLimit && !stopRequested) {
+    while (currentProcessedCount < currentTargetLimit && !stopRequested) {
       try {
-        // 1. 아직 분석 안 된 뉴페이스 1명 데려오기
         const target = await pool.query(`
           SELECT character_name 
           FROM horn 
@@ -939,18 +1005,16 @@ app.get('/api/admin/start-safe', async (req, res) => {
         3. "keywords": 유저 성향을 나타내는 밈(meme) 해시태그 4개 (단순 단어 추출 절대 금지. 반드시 #자본주의, #새벽반 처럼 성향을 유추해서 창작할 것)
         4. "activeTime": 주로 활동하는 시간대
         5. "mainActivity": 주로 하는 활동
-        }
-        [🚨절대 규칙🚨] 
+
+[🚨절대 규칙🚨] 
         1. JSON의 key 값에 "칭호", "분석" 이라는 단어를 그대로 적지 마! 반드시 네가 창작한 내용을 적어.
         2. 부정적 단어(빌런, 비매너 등) 절대 금지. 유쾌하고 둥글게 포장할 것. 
         3. 본문 단어 단순 추출 금지. 대화 패턴으로 성향을 유추한 밈 해시태그(예: #새벽반, #자본주의)를 창작할 것.
         [데이터]\n${messages}`;
 
-        // 2. 제미니가 대답할 때까지 차분하게 기다림 (await)
         const aiResponse = await model.generateContent(prompt);
         const analysis = JSON.parse(aiResponse.response.text());
 
-        // 3. DB 저장도 완벽하게 끝날 때까지 기다림 (덮어쓰기 ON)
         await pool.query(`
           INSERT INTO user_analysis (character_name, keywords, analysis_json, updated_at)
           VALUES ($1, $2, $3, NOW())
@@ -958,10 +1022,9 @@ app.get('/api/admin/start-safe', async (req, res) => {
           SET keywords = EXCLUDED.keywords, analysis_json = EXCLUDED.analysis_json, updated_at = NOW()
         `, [name, analysis.keywords, analysis]);
         
-        processedCount++;
-        console.log(`🛡️ [안전 모드: ${processedCount}/${targetLimit}] ${name} 분석 완료!`);
+        currentProcessedCount++;
+        console.log(`🛡️ [안전 모드: ${currentProcessedCount}/${currentTargetLimit}] ${name} 분석 완료!`);
 
-        // 4. 모든 작업이 '완벽하게' 끝난 뒤에만 딱 2초 휴식! (중복 에러 절대 안 남)
         await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (err) {
@@ -970,7 +1033,7 @@ app.get('/api/admin/start-safe', async (req, res) => {
       }
     }
     
-    console.log(`🎉 [안전 종료] 공장 가동이 끝났습니다. (총 ${processedCount}명 처리 완료)`);
+    console.log(`🎉 [안전 종료] 공장 가동이 끝났습니다. (총 ${currentProcessedCount}명 처리 완료)`);
     isRunning = false;
   })();
 });
