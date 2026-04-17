@@ -61,10 +61,11 @@ async function initDB() {
 }
 
 function classify(msg) {
-  // 🔥 성장, 길드모집 등 작가님 요청 키워드 추가! (파티보다 무조건 먼저 분류됨)
   if (/길드|길원|길모|성장/.test(msg)) return 'guild';
+  // 🔥 거래를 먼저 체크하게 위로 올리고, 은어(팜, 삼, 사요 등) 완벽 추가!
+  if (/팝니다|팝|팜|판매|삽니다|삼|구매|구입|팔아요|사요|얼마|골드|가격|숲|제시|흥정/.test(msg)) return 'trade';
+  // 그 다음 파티 체크
   if (/파티|구함|모집|인원|\/\d|[0-9]\/[0-9]/.test(msg)) return 'party';
-  if (/팝니다|팝|판매|삽니다|구매|구입|얼마|골드|가격/.test(msg)) return 'trade';
   return 'etc';
 }
 
@@ -551,6 +552,11 @@ app.get('/api/stats/lobby-weather', async (req, res) => {
       params.push(server);
     }
     const result = await pool.query(query, params);
+    // 🚨 핵심: 수집된 거뿔이 없으면 AI 부르지 말고 여기서 컷!
+    if (result.rows.length === 0) {
+      return res.json({ weather: "아직 수집된 거뿔이 없어 에린이 아주 조용합니다." });
+    }
+
     const messages = result.rows.map(r => r.message).join('\n');
 
     const prompt = `너는 마비노기 서버 분위기를 객관적이고 재밌게 알려주는 안내자야.
@@ -696,7 +702,7 @@ app.get('/api/stats/market', async (req, res) => {
   const { server, days } = req.query;
   const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
   
-  let query = `SELECT server_name, character_name, message, date_send FROM horn WHERE category = 'trade' AND date_send >= $1`;
+  let query = `SELECT server_name, character_name, message, date_send FROM horn WHERE (category = 'trade' OR message ~ '팝니다|삽니다|판매|구매|팜|삼|팔아요|사요') AND date_send >= $1`;
   const params = [since];
   
   if (server && server !== 'all') { 
@@ -833,22 +839,6 @@ app.get('/api/user/:name/analyze', async (req, res) => {
   }
 });
 
-// 2. 유사 유저 찾기 API 추가
-app.get('/api/user/:name/similar', async (req, res) => {
-  const name = req.params.name;
-  try {
-    const userRes = await pool.query('SELECT keywords FROM user_analysis WHERE character_name = $1', [name]);
-    if (userRes.rows.length === 0) return res.json({ similar: [] });
-
-    const userKeywords = userRes.rows[0].keywords;
-    const similarRes = await pool.query(`
-      SELECT character_name, (SELECT COUNT(*) FROM unnest(keywords) k WHERE k = ANY($1)) as match_count
-      FROM user_analysis WHERE character_name != $1 ORDER BY match_count DESC LIMIT 5
-    `, [userKeywords]);
-
-    res.json({ similar: similarRes.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 app.get('/api/user/:name/similar', async (req, res) => {
   const name = req.params.name;
