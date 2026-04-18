@@ -807,75 +807,55 @@ app.get('/api/user/:name', async (req, res) => {
   }
 });
 
-// 👥 [수정본] 서버별 필터링이 완벽하게 지원되는 비슷한 밀레시안 API
-app.get('/api/user/:name/similar', async (req, res) => {
+// 1. AI 분석 API 수술 (방탄 처리 + DB 저장)
+app.get('/api/user/:name/analyze', async (req, res) => {
   const name = req.params.name;
-  const server = req.query.server || 'all'; // 👈 프론트에서 보낸 서버 정보 받기
+  if (!genAI) return res.status(500).json({ error: 'Gemini API 키가 없어요' });
 
   try {
-    const userRes = await pool.query('SELECT keywords FROM user_analysis WHERE character_name = $1', [name]);
-    if (userRes.rows.length === 0) return res.json({ similar: [] });
+    const result = await pool.query(`
+      SELECT message, category, date_send, server_name FROM horn
+      WHERE character_name = $1 ORDER BY date_send DESC LIMIT 100
+    `, [name]);
 
-    const userKeywords = userRes.rows[0].keywords;
+    const rows = result.rows;
+    if (rows.length === 0) return res.json({ found: false });
 
-    let query = `
-      SELECT 
-        a.character_name, 
-        a.keywords, 
-        h.server_name,
-        (SELECT COUNT(*) FROM unnest(a.keywords) k WHERE k = ANY($1::text[])) as match_count
-      FROM user_analysis a
-      LEFT JOIN (
-        SELECT character_name, MAX(server_name) as server_name 
-        FROM horn 
-        GROUP BY character_name
-      ) h ON a.character_name = h.character_name
-      WHERE a.character_name != $2 
-        AND a.keywords && $1::text[]
-    `;
+    let partyCount = 0, tradeCount = 0, guildCount = 0, etcCount = 0;
+    const messages = rows.map(r => {
+      if (r.category === 'party') partyCount++;
+      else if (r.category === 'trade') tradeCount++;
+      else if (r.category === 'guild') guildCount++;
+      else etcCount++;
+      return `[${new Date(r.date_send).getHours()}시] ${r.message}`;
+    }).join('\n');
 
-    const params = [userKeywords, name];
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash',
+      generationConfig: { responseMimeType: "application/json" } 
+    });
 
-    // 🔥 핵심: '전체 서버'가 아닐 경우, 해당 서버 유저만 가져오도록 필터 추가!
-    if (server !== 'all' && server !== '🌐 전체 서버') {
-      params.push(server);
-      query += ` AND h.server_name = $${params.length}`;
-    }
-
-    query += ` ORDER BY match_count DESC LIMIT 5`;
-
-    const similarRes = await pool.query(query, params);
-    res.json({ similar: similarRes.rows });
-  } catch (e) {
-    console.error(`[비슷한 밀레시안 찾기 에러]`, e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
+    // 👇 백틱이 완벽하게 닫힌 깔끔한 프롬프트!
     const prompt = `너는 마비노기 유저 프로파일러야. 아래 유저 "${name}"의 거뿔 데이터를 분석해서 반드시 JSON 형식으로만 답변해.
 
-        [JSON 요구사항]
-        1. "type": 유저의 성향을 나타내는 재미있는 칭호 (절대 '칭호'라는 단어 쓰지 말 것. 예: 낭만 가득한 요정)
-        2. "description": 유저의 플레이 성향에 대한 유쾌한 분석 내용 2~3문장 (절대 '분석'이라는 단어 쓰지 말 것)
-        3. "keywords": 유저 성향을 나타내는 밈(meme) 해시태그 **최소 10개 이상** (단순 단어 추출 절대 금지. 반드시 #자본주의 등 성향을 유추해서 창작할 것)
-        4. "activeTime": 주로 활동하는 시간대
-        5. "mainActivity": 주로 하는 활동
+    [JSON 요구사항]
+    1. "type": 유저의 성향을 나타내는 재미있는 칭호 (절대 '칭호'라는 단어 쓰지 말 것. 예: 낭만 가득한 요정)
+    2. "description": 유저의 플레이 성향에 대한 유쾌한 분석 내용 2~3문장 (절대 '분석'이라는 단어 쓰지 말 것)
+    3. "keywords": 유저 성향을 나타내는 밈(meme) 해시태그 **최소 10개 이상** (단순 단어 추출 절대 금지. 반드시 #자본주의 등 성향을 유추해서 창작할 것)
+    4. "activeTime": 주로 활동하는 시간대
+    5. "mainActivity": 주로 하는 활동
 
-        [🚨절대 규칙🚨] 
-        1. JSON의 key 값에 "칭호", "분석" 이라는 단어를 그대로 적지 마! 반드시 네가 창작한 내용을 적어.
-        2. 부정적 단어(빌런, 비매너 등) 절대 금지. 유쾌하고 둥글게 포장할 것. 
-        3. 해시태그 기호는 반드시 한 개(#)만 써. '##' 처럼 두 번 쓰면 안 돼!
-
+    [🚨절대 규칙🚨] 
+    1. JSON의 key 값에 "칭호", "분석" 이라는 단어를 그대로 적지 마! 반드시 네가 창작한 내용을 적어.
+    2. 부정적 단어(빌런, 비매너 등) 절대 금지. 유쾌하고 둥글게 포장할 것. 
+    3. 해시태그 기호는 반드시 한 개(#)만 써. '##' 처럼 두 번 쓰면 안 돼!
 
     [데이터]\n${messages}`;
 
     const aiResponse = await model.generateContent(prompt);
     const rawText = aiResponse.response.text();
-    
-    // 정규식 없이 바로 파싱!
     const analysis = JSON.parse(rawText);
 
-    // 💾 DB에 저장
     await pool.query(`
       INSERT INTO user_analysis (character_name, keywords, analysis_json, updated_at)
       VALUES ($1, $2, $3, NOW())
@@ -1068,6 +1048,7 @@ app.get('/api/admin/start-safe', async (req, res) => {
 
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { responseMimeType: "application/json" } });
         
+        // 👇 여기도 백틱 완벽 보호!
         const prompt = `너는 마비노기 유저 프로파일러야. 아래 유저 "${name}"의 거뿔 데이터를 분석해서 반드시 JSON 형식으로만 답변해.
 
         [JSON 요구사항]
