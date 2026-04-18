@@ -10,7 +10,9 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 
 // 1. 기본 보안 헬멧 쓰기 (해커들이 훔쳐보기 어렵게 만듦)
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
 
 // 🚨 [추가된 코드] Railway 같은 프록시 환경에서 진짜 IP를 인식하도록 설정!
 app.set('trust proxy', 1);
