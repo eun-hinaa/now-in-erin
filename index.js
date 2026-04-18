@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
 const { Pool } = require('pg');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -831,9 +831,27 @@ app.get('/api/user/:name/analyze', async (req, res) => {
     }).join('\n');
 
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
-      generationConfig: { responseMimeType: "application/json" } 
-    });
+          model: 'gemini-2.5-flash',
+          generationConfig: { responseMimeType: "application/json" },
+          safetySettings: [
+            {
+              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+          ]
+        });
 
     // 👇 백틱이 완벽하게 닫힌 깔끔한 프롬프트!
     const prompt = `너는 마비노기 유저 프로파일러야. 아래 유저 "${name}"의 거뿔 데이터를 분석해서 반드시 JSON 형식으로만 답변해.
@@ -1046,7 +1064,28 @@ app.get('/api/admin/start-safe', async (req, res) => {
         const userMsgRes = await pool.query(`SELECT message FROM horn WHERE character_name = $1 ORDER BY date_send DESC LIMIT 50`, [name]);
         const messages = userMsgRes.rows.map(r => r.message).join('\n');
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { responseMimeType: "application/json" } });
+        const model = genAI.getGenerativeModel({ 
+          model: 'gemini-2.5-flash',
+          generationConfig: { responseMimeType: "application/json" },
+          safetySettings: [
+            {
+              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+          ]
+        });
         
         // 👇 여기도 백틱 완벽 보호!
         const prompt = `너는 마비노기 유저 프로파일러야. 아래 유저 "${name}"의 거뿔 데이터를 분석해서 반드시 JSON 형식으로만 답변해.
