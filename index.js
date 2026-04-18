@@ -648,9 +648,15 @@ app.get('/api/stats/blackmarket', async (req, res) => {
       const extractMatch = (regex, itemName) => {
         const match = msg.match(regex);
         if (match) {
-          let price = parseSoop(match[2], match[3]);
+          // 🔥 마법의 N빵 로직 (match[2]에 수량이 잡힘!)
+          let qty = match[2] ? parseInt(match[2]) : 1;
+          let price = parseSoop(match[3], match[4]);
 
-          // 🔥 수세공 묶음 판매(100개, 400개 등) 개당 단가 보정 로직
+          // 일괄 판매 N빵 (개당, 씩 단어가 없을 때만)
+          if (qty > 1 && !/개당|씩/.test(msg)) {
+            price = price / qty;
+          }
+
           if (itemName === '수세공' && price > 200) {
             const commonQtys = [400, 100, 50, 10];
             for (let q of commonQtys) {
@@ -665,12 +671,13 @@ app.get('/api/stats/blackmarket', async (req, res) => {
         }
       };
 
-      extractMatch(/(뀨|구구|구슬구매|거불구슬)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '브리 구슬');
-      extractMatch(/(붕마정|붕괴된마력의정수)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '붕마정');
-      extractMatch(/(아다만|아다만티움|글기깃|글기심|장기)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '크롬 장기');
-      extractMatch(/(인능상|인챈트능력의상승스크롤)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '인능상');
-      extractMatch(/(거불인보포|인보포거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '거불 인보포');
-      extractMatch(/(거불수세공|수세공)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '수세공');
+      // 🚨 정규식 업그레이드: 수량(개)과 은어(일괄, 개당)를 완벽하게 분리해서 인식합니다!
+      extractMatch(/(뀨|구구|구슬구매|거불구슬)(?:([0-9]+)개)?(?:일괄)?(?:개당|씩)?([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '브리 구슬');
+      extractMatch(/(붕마정|붕괴된마력의정수)(?:([0-9]+)개)?(?:일괄)?(?:개당|씩)?([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '붕마정');
+      extractMatch(/(아다만|아다만티움|글기깃|글기심|장기)(?:([0-9]+)개)?(?:일괄)?(?:개당|씩)?([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '크롬 장기');
+      extractMatch(/(인능상|인챈트능력의상승스크롤)(?:([0-9]+)개)?(?:일괄)?(?:개당|씩)?([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '인능상');
+      extractMatch(/(거불인보포|인보포거불)(?:([0-9]+)개)?(?:일괄)?(?:개당|씩)?([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '거불 인보포');
+      extractMatch(/(거불수세공|수세공)(?:([0-9]+)개)?(?:일괄)?(?:개당|씩)?([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/, '수세공');
 
       if (msg.includes('가방') && /떨굼|떨식|깐/.test(msg)) {
         const bagM = msg.match(/([0-9]*\.?[0-9]+)(억|천만?|숲|만)?(에|으로)?(팝니다|삽니다|판매|구매|팜|삼|팔아요|사요|구함|구해)/);
@@ -744,8 +751,6 @@ app.get('/api/stats/market', async (req, res) => {
         let item = match[1].replace(/^[\[\(<【].*?[\]\)>】]/, '').replace(/[~!@#$^&*]/g, '').trim();
         const rawNum = match[2];
         const unit = match[3]; 
-        
-        // 🔥 핵심 수술 부위: '사', '삽', '삼', '구' 글자가 하나라도 들어가면 100% 구매! 그 외는 판매!
         const actionStr = match[4];
         const action = /사|삽|삼|구/.test(actionStr) ? '구매' : '판매';
         
@@ -757,10 +762,23 @@ app.get('/api/stats/market', async (req, res) => {
           return num; 
         };
 
+        let finalPrice = priceSoop(rawNum, unit);
+
+        // 🔥 핵심 수술: "3개 4800" 같은 묶음 판매의 '개당 단가' N빵 계산기!
+        const qtyMatch = item.match(/(.*?)\s*([0-9]+)개$/);
+        if (qtyMatch) {
+          const qty = parseInt(qtyMatch[2]);
+          // 원본 거뿔에 '개당', '씩' 이라는 말이 없으면 이건 일괄 가격이므로 나누기!
+          if (qty > 1 && !/개당|씩/.test(r.message)) {
+            finalPrice = Math.round(finalPrice / qty);
+            item = qtyMatch[1].trim() + ` (개당)`; // 예: "붕마정 3개" -> "붕마정 (개당)"
+          }
+        }
+
         if (item.length > 1) {
           trades.push({
             server: r.server_name, character: r.character_name,
-            item: item, price: priceSoop(rawNum, unit), unit: '숲', 
+            item: item, price: finalPrice, unit: '숲', 
             action: action, time: r.date_send, original: r.message
           });
         }
